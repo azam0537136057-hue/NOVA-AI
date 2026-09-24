@@ -14,13 +14,10 @@ jobs:
       - name: Extract NOVA AI
         run: |
           unzip -q NOVA_AI.zip -d nova_project
-          echo "=== Gradle files found ==="
-          find nova_project -type f \( -name "settings.gradle" -o -name "settings.gradle.kts" -o -name "build.gradle" -o -name "build.gradle.kts" \) -print
 
       - name: Find Android project
         run: |
           SETTINGS=$(find nova_project -type f \( -name "settings.gradle" -o -name "settings.gradle.kts" \) | head -1)
-
           if [ -z "$SETTINGS" ]; then
             echo "ERROR: settings.gradle not found"
             exit 1
@@ -28,12 +25,23 @@ jobs:
 
           PROJECT_DIR=$(dirname "$SETTINGS")
           echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
-          echo "Android project found at: $PROJECT_DIR"
+          echo "Android project: $PROJECT_DIR"
 
       - name: Enable AndroidX
         run: |
           echo "android.useAndroidX=true" >> "$PROJECT_DIR/gradle.properties"
           echo "android.enableJetifier=true" >> "$PROJECT_DIR/gradle.properties"
+
+      - name: Add Material library
+        run: |
+          APP_GRADLE="$PROJECT_DIR/app/build.gradle"
+
+          if grep -q "com.google.android.material:material" "$APP_GRADLE"; then
+            echo "Material library already exists."
+          else
+            sed -i '/dependencies[[:space:]]*{/a\    implementation "com.google.android.material:material:1.12.0"' "$APP_GRADLE"
+            echo "Material library added."
+          fi
 
       - name: Set up Java
         uses: actions/setup-java@v4
