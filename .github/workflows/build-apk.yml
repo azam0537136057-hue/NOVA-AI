@@ -14,11 +14,26 @@ jobs:
       - name: Extract NOVA AI
         run: |
           unzip -q NOVA_AI.zip -d nova_project
+          echo "=== Gradle files found ==="
+          find nova_project -type f \( -name "settings.gradle" -o -name "settings.gradle.kts" -o -name "build.gradle" -o -name "build.gradle.kts" \) -print
+
+      - name: Find Android project
+        run: |
+          SETTINGS=$(find nova_project -type f \( -name "settings.gradle" -o -name "settings.gradle.kts" \) | head -1)
+
+          if [ -z "$SETTINGS" ]; then
+            echo "ERROR: settings.gradle not found"
+            exit 1
+          fi
+
+          PROJECT_DIR=$(dirname "$SETTINGS")
+          echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
+          echo "Android project found at: $PROJECT_DIR"
 
       - name: Enable AndroidX
         run: |
-          echo "android.useAndroidX=true" >> nova_project/NOVA_AI/gradle.properties
-          echo "android.enableJetifier=true" >> nova_project/NOVA_AI/gradle.properties
+          echo "android.useAndroidX=true" >> "$PROJECT_DIR/gradle.properties"
+          echo "android.enableJetifier=true" >> "$PROJECT_DIR/gradle.properties"
 
       - name: Set up Java
         uses: actions/setup-java@v4
@@ -29,17 +44,12 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Add Material dependency
-        run: |
-          echo "Adding Material dependency..."
-          sed -i '/dependencies {/a\    implementation "com.google.android.material:material:1.12.0"' nova_project/NOVA_AI/app/build.gradle
-
       - name: Build APK
-        working-directory: nova_project/NOVA_AI
+        working-directory: ${{ env.PROJECT_DIR }}
         run: gradle assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: NOVA-AI-APK
-          path: nova_project/NOVA_AI/**/build/outputs/apk/**/*.apk
+          path: ${{ env.PROJECT_DIR }}/**/build/outputs/apk/**/*.apk
