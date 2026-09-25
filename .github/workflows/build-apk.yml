@@ -28,7 +28,8 @@ jobs:
 
       - name: Fix Material 3 theme
         run: |
-          find "$PROJECT_DIR/app" -type f -name "*.xml" -print0 | xargs -0 sed -i 's/@android:style\/Theme\.Material3/@style\/Theme.Material3/g'
+          find "$PROJECT_DIR/app" -type f -name "*.xml" -print0 | xargs -0 sed -i \
+          's/@android:style\/Theme\.Material3/@style\/Theme.Material3/g'
 
       - name: Configure Material
         run: |
