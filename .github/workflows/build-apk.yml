@@ -25,12 +25,12 @@ jobs:
           echo "android.useAndroidX=true" > "$PROJECT_DIR/gradle.properties"
           echo "android.enableJetifier=true" >> "$PROJECT_DIR/gradle.properties"
 
-      - name: Fix Material 3 references
+      - name: Fix Material 3 parent
         run: |
-          grep -RIl 'android:style/Theme.Material3' "$PROJECT_DIR/app" 2>/dev/null | while read file; do
-            sed -i 's/@android:style\/Theme.Material3/@style\/Theme.Material3/g' "$file"
-            sed -i 's/android:style\/Theme.Material3/style\/Theme.Material3/g' "$file"
-          done
+          find "$PROJECT_DIR/app" -type f -name "*.xml" -print0 | xargs -0 sed -i \
+          -e 's#parent="style/Theme.Material3.DayNight.NoActionBar"#parent="Theme.Material3.DayNight.NoActionBar"#g' \
+          -e 's#parent="android:style/Theme.Material3.DayNight.NoActionBar"#parent="Theme.Material3.DayNight.NoActionBar"#g' \
+          -e 's#@android:style/Theme.Material3.DayNight.NoActionBar#@style/Theme.Material3.DayNight.NoActionBar#g'
 
       - name: Add Material library
         run: |
