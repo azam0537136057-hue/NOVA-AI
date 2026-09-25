@@ -25,16 +25,17 @@ jobs:
           echo "android.useAndroidX=true" > "$PROJECT_DIR/gradle.properties"
           echo "android.enableJetifier=true" >> "$PROJECT_DIR/gradle.properties"
 
-      - name: Fix Material 3 parent
+      - name: Fix Material 3 references
         run: |
           find "$PROJECT_DIR/app" -type f -name "*.xml" -print0 | xargs -0 sed -i \
+          -e 's#@android:style/Theme.Material3.DayNight.NoActionBar#@style/Theme.Material3.DayNight.NoActionBar#g' \
           -e 's#parent="style/Theme.Material3.DayNight.NoActionBar"#parent="Theme.Material3.DayNight.NoActionBar"#g' \
-          -e 's#parent="android:style/Theme.Material3.DayNight.NoActionBar"#parent="Theme.Material3.DayNight.NoActionBar"#g' \
-          -e 's#@android:style/Theme.Material3.DayNight.NoActionBar#@style/Theme.Material3.DayNight.NoActionBar#g'
+          -e 's#parent="android:style/Theme.Material3.DayNight.NoActionBar"#parent="Theme.Material3.DayNight.NoActionBar"#g'
 
-      - name: Add Material library
+      - name: Configure Material
         run: |
           APP_GRADLE=$(find "$PROJECT_DIR/app" -maxdepth 1 -type f \( -name "build.gradle" -o -name "build.gradle.kts" \) | head -1)
+          echo "App Gradle file: $APP_GRADLE"
 
           if [[ "$APP_GRADLE" == *.kts ]]; then
             grep -q 'com.google.android.material:material' "$APP_GRADLE" || \
@@ -42,6 +43,28 @@ jobs:
           else
             grep -q 'com.google.android.material:material' "$APP_GRADLE" || \
             sed -i '/dependencies {/a\    implementation "com.google.android.material:material:1.12.0"' "$APP_GRADLE"
+          fi
+
+      - name: Set JVM target to 17
+        run: |
+          APP_GRADLE=$(find "$PROJECT_DIR/app" -maxdepth 1 -type f \( -name "build.gradle" -o -name "build.gradle.kts" \) | head -1)
+
+          if [[ "$APP_GRADLE" == *.kts ]]; then
+            sed -i '/android {/a\    compileOptions {\
+        sourceCompatibility = JavaVersion.VERSION_17\
+        targetCompatibility = JavaVersion.VERSION_17\
+    }\
+    kotlinOptions {\
+        jvmTarget = "17"\
+    }' "$APP_GRADLE"
+          else
+            sed -i '/android {/a\    compileOptions {\
+        sourceCompatibility JavaVersion.VERSION_17\
+        targetCompatibility JavaVersion.VERSION_17\
+    }\
+    kotlinOptions {\
+        jvmTarget = "17"\
+    }' "$APP_GRADLE"
           fi
 
       - name: Set up Java
