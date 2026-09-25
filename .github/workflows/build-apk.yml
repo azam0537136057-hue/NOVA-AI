@@ -19,22 +19,22 @@ jobs:
         run: |
           PROJECT_DIR=$(dirname "$(find nova_project -name settings.gradle -o -name settings.gradle.kts | head -1)")
           echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
-          echo "Project found at: $PROJECT_DIR"
 
       - name: Enable AndroidX
         run: |
           echo "android.useAndroidX=true" > "$PROJECT_DIR/gradle.properties"
           echo "android.enableJetifier=true" >> "$PROJECT_DIR/gradle.properties"
 
-      - name: Fix Material 3 theme
+      - name: Fix Material 3 references
         run: |
-          find "$PROJECT_DIR/app" -type f -name "*.xml" -print0 | xargs -0 sed -i \
-          's/@android:style\/Theme\.Material3/@style\/Theme.Material3/g'
+          grep -RIl 'android:style/Theme.Material3' "$PROJECT_DIR/app" 2>/dev/null | while read file; do
+            sed -i 's/@android:style\/Theme.Material3/@style\/Theme.Material3/g' "$file"
+            sed -i 's/android:style\/Theme.Material3/style\/Theme.Material3/g' "$file"
+          done
 
-      - name: Configure Material
+      - name: Add Material library
         run: |
           APP_GRADLE=$(find "$PROJECT_DIR/app" -maxdepth 1 -type f \( -name "build.gradle" -o -name "build.gradle.kts" \) | head -1)
-          echo "App Gradle file: $APP_GRADLE"
 
           if [[ "$APP_GRADLE" == *.kts ]]; then
             grep -q 'com.google.android.material:material' "$APP_GRADLE" || \
