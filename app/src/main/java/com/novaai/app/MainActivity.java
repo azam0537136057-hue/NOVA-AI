@@ -356,11 +356,12 @@ public class MainActivity extends Activity {
     }
 
     private String sendToBackend(String message) throws Exception {
+    try {
         URL url = new URL(BACKEND_URL + "/api/chat");
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
         conn.setRequestMethod("POST");
-        conn.setConnectTimeout(12000);
-        conn.setReadTimeout(60000);
+        conn.setConnectTimeout(5000);
+        conn.setReadTimeout(15000);
         conn.setDoOutput(true);
         conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
 
@@ -378,13 +379,45 @@ public class MainActivity extends Activity {
         reader.close();
         conn.disconnect();
 
-        if (code < 200 || code >= 300) {
-            throw new Exception("خطأ " + code);
+        if (code >= 200 && code < 300) {
+            String reply = new JSONObject(sb.toString()).optString("reply", "");
+            if (!reply.isEmpty()) return reply;
         }
-        return new JSONObject(sb.toString()).optString("reply", "لم يصل رد");
+    } catch (Exception ignored) {
+        // نكمل للرد المحلي
+    }
+    return localReply(message);
+}
+
+private String localReply(String message) {
+    String m = message.toLowerCase().trim();
+
+    if (m.contains("سلام") || m.contains("هلا") || m.contains("مرحبا") || m.contains("hello") || m.contains("hi")) {
+        return "وعليكم السلام! كيف أقدر أساعدك اليوم؟";
+    }
+    if (m.contains("كيف حالك") || m.contains("كيفك") || m.contains("أخبارك")) {
+        return "بخير الحمد لله! وأنت كيف حالك؟";
+    }
+    if (m.contains("اسمك") || m.contains("من أنت") || m.contains("وش اسمك")) {
+        return "أنا NOVA AI، مساعدك الذكي التجريبي.";
+    }
+    if (m.contains("شكرا") || m.contains("شكرًا") || m.contains("thanks")) {
+        return "العفو! أي خدمة ثانية؟";
+    }
+    if (m.contains("وقت") || m.contains("ساعة") || m.contains("تاريخ")) {
+        return "ما أقدر أعرف الوقت الحقيقي في هالنسخة التجريبية، بس أقدر أساعدك في أسئلة ثانية.";
+    }
+    if (m.contains("مساعدة") || m.contains("تساعد") || m.contains("help")) {
+        return "أكيد! اسألني أي شيء: تحية، تعريف، أو جرب تكتب سؤالك.";
+    }
+    if (m.contains("باي") || m.contains("مع السلامة") || m.contains("bye")) {
+        return "مع السلامة! أشوفك قريب.";
     }
 
-    private void loadMessages() {
+    return "وصلت رسالتك: \"" + message + "\"\n\n"
+            + "هذي نسخة تجريبية. الردود المحلية محدودة.\n"
+            + "لما نربط Backend حقيقي راح يصير الرد أذكى بكثير.";
+}
         String raw = prefs.getString("messages", null);
         messages.clear();
         if (raw == null) {
