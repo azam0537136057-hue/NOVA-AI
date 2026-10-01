@@ -338,6 +338,10 @@ public class MainActivity extends Activity {
     private String localReply(String message) {
         String m = message.toLowerCase().trim();
 
+        // الوداع أولاً قبل التحية (عشان ما يلتبس مع كلمة سلام)
+        if (has(m, "مع السلامة", "مع السلامه", "باي", "وداع", "bye", "إلى اللقاء", "الى اللقاء"))
+            return "مع السلامة " + userName + "! يومك سعيد.";
+
         if (has(m, "سلام", "هلا", "مرحبا", "مرحباً", "hello", "hi"))
             return "وعليكم السلام " + userName + "! كيف أقدر أساعدك؟";
 
@@ -386,9 +390,6 @@ public class MainActivity extends Activity {
 
         if (has(m, "👍", "👏", "🔥"))
             return "تمام! أي سؤال ثاني؟";
-
-        if (has(m, "باي", "مع السلامة", "bye"))
-            return "مع السلامة " + userName + "!";
 
         return "فهمت: «" + message + "»\nجرب: الوقت، التاريخ، نكتة، أو مرحبا.";
     }
