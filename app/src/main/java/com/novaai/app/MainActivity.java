@@ -39,6 +39,7 @@ public class MainActivity extends Activity {
     private String userName = "";
     private boolean premium = false;
     private int usage = 0;
+    private int jokeIndex = 0;
     private ArrayList<String> messages = new ArrayList<>();
 
     private LinearLayout root;
@@ -59,11 +60,8 @@ public class MainActivity extends Activity {
         root.setBackgroundColor(Color.parseColor("#0F0F1A"));
         setContentView(root);
 
-        if (userName.isEmpty()) {
-            showAccountScreen();
-        } else {
-            showChatScreen();
-        }
+        if (userName.isEmpty()) showAccountScreen();
+        else showChatScreen();
     }
 
     private void showAccountScreen() {
@@ -93,7 +91,6 @@ public class MainActivity extends Activity {
         nameInput.setBackgroundColor(Color.parseColor("#1A1A2E"));
         nameInput.setPadding(dp(16), dp(14), dp(16), dp(14));
         nameInput.setSingleLine(true);
-        nameInput.setGravity(Gravity.RIGHT);
         root.addView(nameInput, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT));
@@ -161,7 +158,6 @@ public class MainActivity extends Activity {
         scroll.addView(msgBox);
         root.addView(scroll, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, 0, 1));
-
         refreshMessages(msgBox);
 
         LinearLayout bottom = new LinearLayout(this);
@@ -342,51 +338,62 @@ public class MainActivity extends Activity {
     private String localReply(String message) {
         String m = message.toLowerCase().trim();
 
-        if (contains(m, "سلام", "هلا", "مرحبا", "مرحباً", "hello", "hi", "السلام")) {
+        if (has(m, "سلام", "هلا", "مرحبا", "مرحباً", "hello", "hi"))
             return "وعليكم السلام " + userName + "! كيف أقدر أساعدك؟";
-        }
-        if (contains(m, "كيف حالك", "كيفك", "أخبارك", "اخبارك", "شلونك")) {
+
+        if (has(m, "كيف حالك", "كيفك", "أخبارك", "اخبارك", "شلونك"))
             return "بخير الحمد لله يا " + userName + "! وأنت كيف حالك؟";
-        }
-        if (contains(m, "اسمك", "من أنت", "من انت", "وش اسمك", "شنو اسمك")) {
-            return "أنا NOVA AI، مساعدك الذكي التجريبي. سعيد بمعرفتك!";
-        }
-        if (contains(m, "شكرا", "شكرًا", "شكراً", "مشكور", "thanks")) {
-            return "العفو! أي وقت تحتاجني أنا هنا.";
-        }
-        if (contains(m, "تساعد", "مساعدة", "ساعدني", "تقدر", "help")) {
-            return "أكيد أقدر أساعدك! اسأل عن: الوقت، التاريخ، نكتة، أو أي سؤال عام.";
-        }
-        if (contains(m, "وقت", "ساعه", "ساعة", "كم الساعه", "كم الساعة", "التوقيت")) {
-            java.util.Calendar c = java.util.Calendar.getInstance();
-            int h = c.get(java.util.Calendar.HOUR_OF_DAY);
-            int min = c.get(java.util.Calendar.MINUTE);
-            return "الوقت التقريبي على جهازك: " + String.format("%02d:%02d", h, min);
-        }
-        if (contains(m, "تاريخ", "اليوم", "أي يوم", "كم تاريخ")) {
-            java.util.Calendar c = java.util.Calendar.getInstance();
-            int d = c.get(java.util.Calendar.DAY_OF_MONTH);
-            int mo = c.get(java.util.Calendar.MONTH) + 1;
-            int y = c.get(java.util.Calendar.YEAR);
-            return "تاريخ اليوم على جهازك: " + d + "/" + mo + "/" + y;
-        }
-        if (contains(m, "نكتة", "نكته", "نكت", "اضحكني", "joke")) {
-            return "ليش الكمبيوتر راح للدكتور؟ عشان عنده فيروس! 😄";
-        }
-        if (contains(m, "ضحك", "حلو", "حلوه", "ممتاز", "رائع", "زين")) {
-            return "يسعدني! تبي نكتة ثانية أو سؤال ثاني؟";
-        }
-        if (contains(m, "باي", "مع السلامة", "وداع", "bye")) {
-            return "مع السلامة " + userName + "! يومك سعيد.";
-        }
-        if (contains(m, "nova", "نوفا", "تطبيق")) {
-            return "NOVA AI تطبيق محادثة تجريبي. الحين بردود محلية، ولاحقًا يتصل بذكاء اصطناعي حقيقي.";
+
+        if (has(m, "اسمك", "من أنت", "من انت", "وش اسمك"))
+            return "أنا NOVA AI، مساعدك الذكي التجريبي.";
+
+        if (has(m, "شكرا", "شكرًا", "شكراً", "مشكور", "thanks"))
+            return "العفو! أنا هنا أي وقت.";
+
+        if (has(m, "تساعد", "مساعدة", "ساعدني", "تقدر", "help"))
+            return "أكيد! اسألني عن الوقت، التاريخ، نكتة، أو أي سؤال عام.";
+
+        if (has(m, "وقت", "ساعه", "ساعة", "كم الساعه", "كم الساعة")) {
+            Calendar c = Calendar.getInstance();
+            return "الوقت التقريبي: " + String.format("%02d:%02d",
+                    c.get(Calendar.HOUR_OF_DAY), c.get(Calendar.MINUTE));
         }
 
-        return "فهمت: «" + message + "»\n\nهذي نسخة تجريبية. جرب: الوقت، التاريخ، نكتة، أو مرحبا.";
+        if (has(m, "تاريخ", "اليوم", "كم تاريخ")) {
+            Calendar c = Calendar.getInstance();
+            return "تاريخ اليوم: " + c.get(Calendar.DAY_OF_MONTH) + "/"
+                    + (c.get(Calendar.MONTH) + 1) + "/" + c.get(Calendar.YEAR);
+        }
+
+        if (has(m, "نكتة", "نكته", "نكت", "اضحكني", "joke")) {
+            String[] jokes = {
+                    "ليش الكمبيوتر راح للدكتور؟ عشان عنده فيروس! 😄",
+                    "المبرمج قال لزوجته: أحبك من 1 إلى 10... فقالت: وأنت؟ قال: من 0 إلى 1 فقط 😅",
+                    "ليش الـ WiFi حزين؟ لأنه فقد الـ connection 😢",
+                    "دخل بايثون على مطعم... قال له النادل: SyntaxError 😂",
+                    "ليش الهاتف ما يضحك؟ لأنه على Silent mode 🤫"
+            };
+            String joke = jokes[jokeIndex % jokes.length];
+            jokeIndex++;
+            return joke;
+        }
+
+        if (has(m, "😂", "🤣", "😆", "ضحك", "حلو", "حلوه", "زين", "ممتاز"))
+            return "يسعدني إنك ضحكت! تبي نكتة ثانية؟";
+
+        if (has(m, "❤️", "💕", "😍", "حب"))
+            return "هههه شكرًا! أنا هنا عشان أساعدك.";
+
+        if (has(m, "👍", "👏", "🔥"))
+            return "تمام! أي سؤال ثاني؟";
+
+        if (has(m, "باي", "مع السلامة", "bye"))
+            return "مع السلامة " + userName + "!";
+
+        return "فهمت: «" + message + "»\nجرب: الوقت، التاريخ، نكتة، أو مرحبا.";
     }
 
-    private boolean contains(String text, String... keys) {
+    private boolean has(String text, String... keys) {
         for (String k : keys) {
             if (text.contains(k.toLowerCase())) return true;
         }
@@ -402,9 +409,7 @@ public class MainActivity extends Activity {
         }
         try {
             JSONArray arr = new JSONArray(raw);
-            for (int i = 0; i < arr.length(); i++) {
-                messages.add(arr.optString(i));
-            }
+            for (int i = 0; i < arr.length(); i++) messages.add(arr.optString(i));
         } catch (Exception e) {
             messages.add("NOVA AI: مرحبًا!");
         }
