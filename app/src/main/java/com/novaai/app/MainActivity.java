@@ -16,21 +16,15 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import org.json.JSONArray;
-import org.json.JSONObject;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class MainActivity extends Activity {
 
-    private static final String BACKEND_URL = "http://10.0.2.2:3000";
     private static final String PREFS = "nova_ai";
     private static final int FREE_LIMIT = 10;
     private static final int PREMIUM_LIMIT = 100;
@@ -45,6 +39,7 @@ public class MainActivity extends Activity {
     private LinearLayout root;
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
+    private final Random random = new Random();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -205,7 +200,9 @@ public class MainActivity extends Activity {
             send.setText("...");
 
             executor.execute(() -> {
-                String reply = getReply(text);
+                // تأخير بسيط عشان يحس إنه يفكر
+                try { Thread.sleep(400 + random.nextInt(600)); } catch (Exception ignored) {}
+                String reply = localReply(text);
                 mainHandler.post(() -> {
                     messages.add("NOVA AI: " + reply);
                     saveMessages();
@@ -304,94 +301,109 @@ public class MainActivity extends Activity {
         }
     }
 
-    private String getReply(String message) {
-        try {
-            URL url = new URL(BACKEND_URL + "/api/chat");
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestMethod("POST");
-            conn.setConnectTimeout(4000);
-            conn.setReadTimeout(10000);
-            conn.setDoOutput(true);
-            conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
-            String body = new JSONObject().put("message", message).toString();
-            try (OutputStream os = conn.getOutputStream()) {
-                os.write(body.getBytes("UTF-8"));
-            }
-            int code = conn.getResponseCode();
-            if (code >= 200 && code < 300) {
-                BufferedReader reader = new BufferedReader(
-                        new InputStreamReader(conn.getInputStream(), "UTF-8"));
-                StringBuilder sb = new StringBuilder();
-                String line;
-                while ((line = reader.readLine()) != null) sb.append(line);
-                reader.close();
-                conn.disconnect();
-                String reply = new JSONObject(sb.toString()).optString("reply", "");
-                if (!reply.isEmpty()) return reply;
-            }
-            conn.disconnect();
-        } catch (Exception ignored) {
-        }
-        return localReply(message);
-    }
-
     private String localReply(String message) {
         String m = message.toLowerCase().trim();
 
-        // الوداع أولاً قبل التحية (عشان ما يلتبس مع كلمة سلام)
+        // وداع أولاً
         if (has(m, "مع السلامة", "مع السلامه", "باي", "وداع", "bye", "إلى اللقاء", "الى اللقاء"))
-            return "مع السلامة " + userName + "! يومك سعيد.";
+            return pick(
+                    "مع السلامة " + userName + "! يومك سعيد.",
+                    "إلى اللقاء " + userName + "! أشوفك قريب.",
+                    "الله معك " + userName + "!"
+            );
 
-        if (has(m, "سلام", "هلا", "مرحبا", "مرحباً", "hello", "hi"))
-            return "وعليكم السلام " + userName + "! كيف أقدر أساعدك؟";
+        // تحية
+        if (has(m, "سلام", "هلا", "مرحبا", "مرحباً", "hello", "hi", "صباح", "مساء"))
+            return pick(
+                    "وعليكم السلام " + userName + "! كيف أقدر أساعدك؟",
+                    "هلا " + userName + "! تفضل وش تحتاج؟",
+                    "أهلًا " + userName + "! موجود لك."
+            );
 
-        if (has(m, "كيف حالك", "كيفك", "أخبارك", "اخبارك", "شلونك"))
-            return "بخير الحمد لله يا " + userName + "! وأنت كيف حالك؟";
+        if (has(m, "كيف حالك", "كيفك", "أخبارك", "اخبارك", "شلونك", "وش أخبارك"))
+            return pick(
+                    "بخير الحمد لله يا " + userName + "! وأنت كيف حالك؟",
+                    "تمام وبأفضل حال! أنت كيفك؟",
+                    "الحمد لله بخير، سعيد إنك سألت."
+            );
 
-        if (has(m, "اسمك", "من أنت", "من انت", "وش اسمك"))
-            return "أنا NOVA AI، مساعدك الذكي التجريبي.";
+        if (has(m, "اسمك", "من أنت", "من انت", "وش اسمك", "شنو اسمك"))
+            return "أنا NOVA AI، مساعدك التجريبي المحلي. أقدر أرد على تحية، وقت، تاريخ، نكت، ونصائح بسيطة.";
 
-        if (has(m, "شكرا", "شكرًا", "شكراً", "مشكور", "thanks"))
-            return "العفو! أنا هنا أي وقت.";
+        if (has(m, "شكرا", "شكرًا", "شكراً", "مشكور", "thanks", "يسلمو"))
+            return pick("العفو!", "ولا يهمك!", "أنا هنا لأي شيء.");
 
-        if (has(m, "تساعد", "مساعدة", "ساعدني", "تقدر", "help"))
-            return "أكيد! اسألني عن الوقت، التاريخ، نكتة، أو أي سؤال عام.";
+        if (has(m, "تساعد", "مساعدة", "ساعدني", "تقدر", "help", "وش تقدر", "ايش تقدر", "أي خدمة", "اي خدمة"))
+            return "أكيد " + userName + "! أقدر أساعدك في:\n• الوقت والتاريخ\n• نكت\n• تحية ووداع\n• نصائح بسيطة\n• أسئلة عن التطبيق\n\nاكتب سؤالك.";
 
-        if (has(m, "وقت", "ساعه", "ساعة", "كم الساعه", "كم الساعة")) {
+        // وقت وتاريخ
+        if (has(m, "وقت", "ساعه", "ساعة", "كم الساعه", "كم الساعة", "التوقيت")) {
             Calendar c = Calendar.getInstance();
-            return "الوقت التقريبي: " + String.format("%02d:%02d",
+            return "الوقت التقريبي على جهازك: " + String.format("%02d:%02d",
                     c.get(Calendar.HOUR_OF_DAY), c.get(Calendar.MINUTE));
         }
-
-        if (has(m, "تاريخ", "اليوم", "كم تاريخ")) {
+        if (has(m, "تاريخ", "اليوم", "كم تاريخ", "أي يوم")) {
             Calendar c = Calendar.getInstance();
             return "تاريخ اليوم: " + c.get(Calendar.DAY_OF_MONTH) + "/"
                     + (c.get(Calendar.MONTH) + 1) + "/" + c.get(Calendar.YEAR);
         }
 
-        if (has(m, "نكتة", "نكته", "نكت", "اضحكني", "joke")) {
+        // نكت
+        if (has(m, "نكتة", "نكته", "نكت", "اضحكني", "joke", "ضحكني")) {
             String[] jokes = {
                     "ليش الكمبيوتر راح للدكتور؟ عشان عنده فيروس! 😄",
                     "المبرمج قال لزوجته: أحبك من 1 إلى 10... فقالت: وأنت؟ قال: من 0 إلى 1 فقط 😅",
                     "ليش الـ WiFi حزين؟ لأنه فقد الـ connection 😢",
                     "دخل بايثون على مطعم... قال له النادل: SyntaxError 😂",
-                    "ليش الهاتف ما يضحك؟ لأنه على Silent mode 🤫"
+                    "ليش الهاتف ما يضحك؟ لأنه على Silent mode 🤫",
+                    "واحد غبي اشترى كمبيوتر محمول... طاح منه، قال: سموه محمول عشان كذا! 😆",
+                    "ليش السيرفر ما ينام؟ لأنه عنده 24/7 uptime 😴"
             };
             String joke = jokes[jokeIndex % jokes.length];
             jokeIndex++;
             return joke;
         }
 
-        if (has(m, "😂", "🤣", "😆", "ضحك", "حلو", "حلوه", "زين", "ممتاز"))
-            return "يسعدني إنك ضحكت! تبي نكتة ثانية؟";
+        // إيموجي ومشاعر
+        if (has(m, "😂", "🤣", "😆", "ضحك", "حلو", "حلوه", "زين", "ممتاز", "رائع", "خروف"))
+            return pick("يسعدني!", "تبي نكتة ثانية؟", "هههه تمام!");
 
-        if (has(m, "❤️", "💕", "😍", "حب"))
-            return "هههه شكرًا! أنا هنا عشان أساعدك.";
+        if (has(m, "❤️", "💕", "😍", "حب", "أحبك", "احبك"))
+            return "هههه شكرًا! أنا مساعد، وسعادتي إنك تستفيد مني.";
 
-        if (has(m, "👍", "👏", "🔥"))
+        if (has(m, "👍", "👏", "🔥", "قوي", "ياش"))
             return "تمام! أي سؤال ثاني؟";
 
-        return "فهمت: «" + message + "»\nجرب: الوقت، التاريخ، نكتة، أو مرحبا.";
+        if (has(m, "حزين", "زعلان", "تعبان", "ضايق", "ممل"))
+            return "آسف تحس كذا. تبي نكتة خفيفة ولا نغيير الموضوع؟";
+
+        // عن التطبيق
+        if (has(m, "nova", "نوفا", "تطبيق", "هالتطبيق", "من صنعك", "مطور", "برمجك"))
+            return "NOVA AI نسخة تجريبية محلية. الردود محفوظة على الجهاز، وبدون إنترنت للذكاء. هدفها تتطور لاحقًا.";
+
+        if (has(m, "premium", "بريميوم", "ترقية", "اشتراك", "مجاني"))
+            return "المجاني 10 رسائل، وPremium التجريبية 100. من زر الترقية فوق. ما فيه دفع حقيقي بعد.";
+
+        // نصائح بسيطة
+        if (has(m, "نصيحة", "نصيحه", "تحفيز", "تحمسني"))
+            return pick(
+                    "ابدأ بخطوة صغيرة اليوم، والباقي يجي تدريجي.",
+                    "النجاح غالباً استمرارية مو سرعة.",
+                    "خذ راحة قصيرة، بعدين كمّل بتركيز."
+            );
+
+        if (has(m, "طقس", "جو", "حر", "برد", "مطر"))
+            return "ما أقدر أعرف الطقس الحقيقي بدون إنترنت وخدمة خارجية. شيك تطبيق الطقس عندك.";
+
+        if (has(m, "أخبار", "خبر", "حدث"))
+            return "ما عندي أخبار مباشرة. افتح مصدر أخبار موثوق للجديد.";
+
+        // رد افتراضي أذكى شوي
+        return pick(
+                "فهمت: «" + message + "»\nمو ضمن الردود المحفوظة بعد. جرب: وقت، تاريخ، نكتة، نصيحة، أو مرحبا.",
+                "وصلت رسالتك. هذي نسخة محلية محدودة. اسألني عن الوقت أو نكتة أو مساعدة.",
+                "ما عندي رد جاهز لهالسؤال بالضبط. جرب تصيغه بطريقة ثانية، أو اسأل عن الوقت/نكتة/مساعدة."
+        );
     }
 
     private boolean has(String text, String... keys) {
@@ -399,6 +411,10 @@ public class MainActivity extends Activity {
             if (text.contains(k.toLowerCase())) return true;
         }
         return false;
+    }
+
+    private String pick(String... options) {
+        return options[random.nextInt(options.length)];
     }
 
     private void loadMessages() {
