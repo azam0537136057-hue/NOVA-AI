@@ -29,7 +29,6 @@ import java.util.concurrent.Executors;
 
 public class MainActivity extends Activity {
 
-    // ألوان جديدة
     private static final int BG = Color.parseColor("#070B14");
     private static final int SURFACE = Color.parseColor("#0F1623");
     private static final int CARD = Color.parseColor("#151D2E");
@@ -41,8 +40,8 @@ public class MainActivity extends Activity {
     private static final int MUTED = Color.parseColor("#7A8BA3");
 
     private static final String PREFS = "nova_ai";
-    private static final int FREE_LIMIT = 15;
-    private static final int PREMIUM_LIMIT = 200;
+    private static final int FREE_LIMIT = 20;
+    private static final int PREMIUM_LIMIT = 250;
 
     private SharedPreferences prefs;
     private String userName = "";
@@ -88,7 +87,7 @@ public class MainActivity extends Activity {
         root.addView(logo);
 
         TextView sub = new TextView(this);
-        sub.setText("مساعد ذكي محلي\nواجهة جديدة • تجربة أقوى");
+        sub.setText("مساعد محلي أقوى\nردود أوسع • واجهة حديثة");
         sub.setTextSize(15);
         sub.setTextColor(MUTED);
         sub.setGravity(Gravity.CENTER);
@@ -126,7 +125,6 @@ public class MainActivity extends Activity {
         root.setGravity(Gravity.TOP);
         root.setPadding(0, 0, 0, 0);
 
-        // Header
         LinearLayout top = new LinearLayout(this);
         top.setOrientation(LinearLayout.HORIZONTAL);
         top.setBackgroundColor(SURFACE);
@@ -168,13 +166,12 @@ public class MainActivity extends Activity {
         status.setPadding(dp(16), dp(10), dp(16), dp(4));
         root.addView(status);
 
-        // Quick chips
         HorizontalScrollView chipsScroll = new HorizontalScrollView(this);
         chipsScroll.setHorizontalScrollBarEnabled(false);
         LinearLayout chips = new LinearLayout(this);
         chips.setOrientation(LinearLayout.HORIZONTAL);
         chips.setPadding(dp(12), dp(8), dp(12), dp(8));
-        String[] quick = {"نكتة", "الوقت", "التاريخ", "نصيحة", "مساعدة"};
+        String[] quick = {"نكتة", "الوقت", "التاريخ", "نصيحة", "دعاء", "مساعدة"};
         for (String q : quick) {
             Button chip = chipBtn(q);
             LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(
@@ -196,7 +193,6 @@ public class MainActivity extends Activity {
                 LinearLayout.LayoutParams.MATCH_PARENT, 0, 1));
         refreshMessages(msgBox);
 
-        // Input bar
         LinearLayout bottom = new LinearLayout(this);
         bottom.setOrientation(LinearLayout.HORIZONTAL);
         bottom.setBackgroundColor(SURFACE);
@@ -242,9 +238,8 @@ public class MainActivity extends Activity {
             }
             if (c instanceof ScrollView) {
                 scroll = (ScrollView) c;
-                if (scroll.getChildCount() > 0 && scroll.getChildAt(0) instanceof LinearLayout) {
+                if (scroll.getChildCount() > 0 && scroll.getChildAt(0) instanceof LinearLayout)
                     msgBox = (LinearLayout) scroll.getChildAt(0);
-                }
             }
         }
         if (root.getChildCount() > 0) {
@@ -254,17 +249,16 @@ public class MainActivity extends Activity {
                 for (int i = 0; i < bottom.getChildCount(); i++) {
                     if (bottom.getChildAt(i) instanceof Button) {
                         Button b = (Button) bottom.getChildAt(i);
-                        if ("إرسال".equals(b.getText().toString()) || "...".equals(b.getText().toString())) {
+                        if ("إرسال".equals(b.getText().toString()) || "...".equals(b.getText().toString()))
                             sendBtn = b;
-                        }
                     }
                 }
             }
         }
 
-        if (statusView != null && msgBox != null && scroll != null && sendBtn != null) {
+        if (statusView != null && msgBox != null && scroll != null && sendBtn != null)
             doSend(text, statusView, msgBox, scroll, sendBtn);
-        } else {
+        else {
             messages.add("أنت: " + text);
             messages.add("NOVA AI: " + localReply(text));
             saveMessages();
@@ -278,7 +272,6 @@ public class MainActivity extends Activity {
             Toast.makeText(this, "انتهت الرسائل. اضغط ترقية", Toast.LENGTH_SHORT).show();
             return;
         }
-
         messages.add("أنت: " + text);
         usage++;
         prefs.edit().putInt("usage", usage).apply();
@@ -289,9 +282,8 @@ public class MainActivity extends Activity {
 
         send.setEnabled(false);
         send.setText("...");
-
         executor.execute(() -> {
-            try { Thread.sleep(300 + random.nextInt(500)); } catch (Exception ignored) {}
+            try { Thread.sleep(280 + random.nextInt(450)); } catch (Exception ignored) {}
             String reply = localReply(text);
             mainHandler.post(() -> {
                 messages.add("NOVA AI: " + reply);
@@ -335,11 +327,10 @@ public class MainActivity extends Activity {
         title.setPadding(0, dp(20), 0, dp(20));
         root.addView(title);
 
-        root.addView(planCard("مجاني", "15 رسالة • تجربة أساسية", !premium, false));
-
+        root.addView(planCard("مجاني", "20 رسالة • تجربة أساسية", !premium, false));
         LinearLayout.LayoutParams pp = matchWrap();
         pp.topMargin = dp(12);
-        root.addView(planCard("Premium", "200 رسالة • مزايا أكثر", premium, true), pp);
+        root.addView(planCard("Premium", "250 رسالة • تجربة أوسع", premium, true), pp);
 
         if (!premium) {
             Button activate = primaryBtn("تفعيل Premium للتجربة");
@@ -367,20 +358,17 @@ public class MainActivity extends Activity {
         card.setOrientation(LinearLayout.VERTICAL);
         card.setBackground(rounded(pro ? ACCENT_DIM : CARD, 18));
         card.setPadding(dp(18), dp(18), dp(18), dp(18));
-
         TextView t = new TextView(this);
         t.setText(name);
         t.setTextSize(18);
         t.setTypeface(Typeface.DEFAULT_BOLD);
         t.setTextColor(pro ? ACCENT : TEXT);
         card.addView(t);
-
         TextView d = new TextView(this);
         d.setText(desc);
         d.setTextColor(MUTED);
         d.setPadding(0, dp(8), 0, 0);
         card.addView(d);
-
         if (current) {
             TextView c = new TextView(this);
             c.setText("✓ خطتك الحالية");
@@ -412,31 +400,29 @@ public class MainActivity extends Activity {
 
         if (has(m, "مع السلامة", "مع السلامه", "باي", "وداع", "bye", "إلى اللقاء", "الى اللقاء"))
             return pick("مع السلامة " + userName + "! يومك سعيد.",
-                    "إلى اللقاء " + userName + "! أشوفك قريب.",
-                    "الله معك " + userName + "!");
+                    "إلى اللقاء " + userName + "! أشوفك قريب.");
 
         if (m.equals("لا") || m.equals("لأ") || m.equals("لا شكرا") || m.equals("لا شكرًا"))
-            return pick("حاضر.", "تمام، إذا احتجت شيء أنا هنا.", "أوك.");
+            return pick("حاضر.", "تمام، أنا هنا إذا احتجت.");
 
         if (m.equals("نعم") || m.equals("ايوه") || m.equals("أيوه") || m.equals("ايه") || m.equals("يب"))
-            return pick("تم!", "تمام.", "أوك، تفضل.");
+            return pick("تم!", "تمام، تفضل.");
 
         if (has(m, "سلام", "هلا", "مرحبا", "مرحباً", "hello", "hi", "صباح", "مساء"))
             return pick("وعليكم السلام " + userName + "! كيف أقدر أساعدك؟",
-                    "هلا " + userName + "! تفضل.",
-                    "أهلًا " + userName + "!");
+                    "هلا " + userName + "! تفضل.");
 
         if (has(m, "كيف حالك", "كيفك", "أخبارك", "اخبارك", "شلونك"))
             return pick("بخير الحمد لله يا " + userName + "! وأنت؟", "تمام وبأفضل حال!");
 
-        if (has(m, "اسمك", "من أنت", "من انت", "وش اسمك"))
-            return "أنا NOVA AI — مساعد محلي بواجهة جديدة. أرد على الوقت، التاريخ، النكت، النصائح، والمساعدة.";
+        if (has(m, "اسمك", "من أنت", "من انت", "وش اسمك", "ايش اسمك"))
+            return "أنا NOVA AI — مساعد محلي. أرد على الوقت، التاريخ، النكت، النصائح، الأدعية، والمساعدة.";
 
         if (has(m, "شكرا", "شكرًا", "شكراً", "مشكور", "thanks", "يسلمو"))
             return pick("العفو!", "ولا يهمك!", "بخدمتك.");
 
-        if (has(m, "تساعد", "مساعدة", "ساعدني", "تقدر", "help", "وش تقدر", "ايش تقدر", "أي خدمة", "اي خدمة"))
-            return "أكيد " + userName + "!\n• الوقت والتاريخ\n• نكت\n• نصائح\n• مسح المحادثة\n• ترقية Premium\n\nاستخدم الأزرار السريعة فوق.";
+        if (has(m, "تساعد", "مساعدة", "ساعدني", "تقدر", "help", "وش تقدر", "ايش تقدر", "أي خدمة", "اي خدمة", "مشروع"))
+            return "أكيد " + userName + "!\n• الوقت والتاريخ\n• نكت\n• نصائح\n• دعاء\n• مسح المحادثة\n• ترقية\n\nللاحتياج الأعمق (برمجة/حسابات معقدة) استخدم أدوات متخصصة أو ذكاء سحابي لاحقًا.";
 
         if (has(m, "وقت", "ساعه", "ساعة", "كم الساعه", "كم الساعة", "التوقيت")) {
             Calendar c = Calendar.getInstance();
@@ -446,8 +432,12 @@ public class MainActivity extends Activity {
 
         if (has(m, "تاريخ", "اليوم", "كم تاريخ", "أي يوم")) {
             Calendar c = Calendar.getInstance();
-            return "تاريخ اليوم: " + c.get(Calendar.DAY_OF_MONTH) + "/"
-                    + (c.get(Calendar.MONTH) + 1) + "/" + c.get(Calendar.YEAR);
+            String[] days = {"الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"};
+            int day = c.get(Calendar.DAY_OF_WEEK); // 1=Sunday
+            return "اليوم " + days[day - 1] + " — التاريخ: "
+                    + c.get(Calendar.DAY_OF_MONTH) + "/"
+                    + (c.get(Calendar.MONTH) + 1) + "/"
+                    + c.get(Calendar.YEAR);
         }
 
         if (has(m, "نكتة", "نكته", "نكت", "اضحكني", "joke", "ضحكني")) {
@@ -457,7 +447,8 @@ public class MainActivity extends Activity {
                     "ليش الـ WiFi حزين؟ لأنه فقد الـ connection 😢",
                     "دخل بايثون على مطعم... قال له النادل: SyntaxError 😂",
                     "ليش الهاتف ما يضحك؟ لأنه على Silent mode 🤫",
-                    "ليش السيرفر ما ينام؟ عنده uptime 24/7 😴"
+                    "ليش السيرفر ما ينام؟ عنده uptime 24/7 😴",
+                    "واحد يبي ينسخ ملف... قال: Ctrl... ونسي الباقي 😆"
             };
             String joke = jokes[jokeIndex % jokes.length];
             jokeIndex++;
@@ -468,26 +459,80 @@ public class MainActivity extends Activity {
             return pick(
                     "ابدأ بخطوة صغيرة اليوم — الاستمرارية أقوى من الحماس.",
                     "خذ راحة قصيرة، بعدين ركّز على هدف واحد.",
-                    "لا تقارن نفسك بالناس. قارن نفسك بأمس."
+                    "لا تقارن نفسك بالناس. قارن نفسك بأمس.",
+                    "النجاح تراكم أيام بسيطة، مو يوم واحد مثالي."
+            );
+
+        if (has(m, "دعاء", "ادعية", "اللهم", "ذكر"))
+            return pick(
+                    "اللهم إني أسألك العافية في الدنيا والآخرة.",
+                    "يا مقلب القلوب ثبّت قلبي على دينك.",
+                    "اللهم يسّر وأعن ولا تعسّر."
             );
 
         if (has(m, "😂", "🤣", "😆", "ضحك", "حلو", "حلوه", "زين", "ممتاز", "رائع"))
             return pick("يسعدني!", "تبي نكتة ثانية؟", "هههه تمام!");
 
-        if (has(m, "حزين", "زعلان", "تعبان", "ضايق", "ممل"))
-            return "آسف إنك تحس كذا. تبي نكتة ولا نصيحة سريعة؟";
+        if (has(m, "حزين", "زعلان", "تعبان", "ضايق", "ممل", "مضغوط"))
+            return "آسف إنك تحس كذا. جرب: نفس عميق، راحة قصيرة، أو اكتب اللي مضايقك. تبي نصيحة أو دعاء؟";
+
+        if (has(m, "درس", "مذاكرة", "اختبار", "امتحان", "دراسة"))
+            return "نصيحة مذاكرة: ركّز 25 دقيقة، ارتاح 5، وكرر. ابدأ بأصعب جزء وأنت مركز.";
+
+        if (has(m, "رياضة", "تمرين", "جيم", "مشي"))
+            return "حتى 15–20 دقيقة مشي يوميًا فرق كبير. الثبات أهم من الشدة.";
+
+        if (has(m, "نوم", "سهر", "أرق"))
+            return "حاول تثبت وقت نوم، وقلل الشاشة قبل النوم بنصف ساعة. الجوال على صامت يساعد.";
 
         if (has(m, "nova", "نوفا", "تطبيق", "شكل", "ألوان", "تصميم"))
-            return "واجهة NOVA الجديدة: ألوان داكنة مع أخضر نعناعي، فقاعات أوضح، وأزرار سريعة.";
+            return "NOVA AI نسخة محلية قوية: واجهة داكنة، أزرار سريعة، ردود أوسع، بدون خادم حاليًا.";
 
         if (has(m, "premium", "بريميوم", "ترقية", "اشتراك"))
-            return "المجاني 15 رسالة، Premium 200. من زر الترقية. لا دفع حقيقي بعد.";
+            return "المجاني 20 رسالة، Premium التجريبية 250. من زر الترقية. لا دفع حقيقي بعد.";
+
+        if (has(m, "طقس", "جو", "حر", "برد", "مطر"))
+            return "ما أقدر أعرف الطقس الحقيقي بدون خدمة خارجية. افتح تطبيق الطقس عندك.";
+
+        if (has(m, "أخبار", "خبر"))
+            return "ما عندي بث أخبار مباشر. اعتمد مصدر موثوق.";
+
+        // عمليات حسابية بسيطة: 5+3 أو 10-2
+        String calc = trySimpleMath(m);
+        if (calc != null) return calc;
 
         return pick(
-                "فهمت: «" + message + "»\nجرب الأزرار السريعة أو: وقت، نكتة، نصيحة، مساعدة.",
-                "وصلت. النسخة المحلية محدودة. جرب الأزرار فوق.",
-                "ما عندي رد جاهز بالضبط. أعد صياغة السؤال أو استخدم الأزرار."
+                "فهمت: «" + message + "»\nجرب: وقت، تاريخ، نكتة، نصيحة، دعاء، أو مساعدة.",
+                "وصلت. النسخة المحلية أقوى من قبل لكنها محدودة. استخدم الأزرار السريعة.",
+                "ما عندي رد جاهز بالضبط. صغ سؤالك بطريقة ثانية أو اضغط مساعدة."
         );
+    }
+
+    private String trySimpleMath(String m) {
+        try {
+            m = m.replace(" ", "").replace("؟", "").replace("?", "");
+            if (m.contains("+")) {
+                String[] p = m.split("\\+");
+                if (p.length == 2) return "النتيجة: " + (Double.parseDouble(p[0]) + Double.parseDouble(p[1]));
+            }
+            if (m.contains("-") && !m.startsWith("-")) {
+                String[] p = m.split("-");
+                if (p.length == 2) return "النتيجة: " + (Double.parseDouble(p[0]) - Double.parseDouble(p[1]));
+            }
+            if (m.contains("×") || m.contains("*") || m.contains("x")) {
+                String[] p = m.split("[×*x]");
+                if (p.length == 2) return "النتيجة: " + (Double.parseDouble(p[0]) * Double.parseDouble(p[1]));
+            }
+            if (m.contains("÷") || m.contains("/")) {
+                String[] p = m.split("[÷/]");
+                if (p.length == 2) {
+                    double b = Double.parseDouble(p[1]);
+                    if (b == 0) return "ما ينفع القسمة على صفر.";
+                    return "النتيجة: " + (Double.parseDouble(p[0]) / b);
+                }
+            }
+        } catch (Exception ignored) {}
+        return null;
     }
 
     private boolean has(String text, String... keys) {
@@ -536,7 +581,7 @@ public class MainActivity extends Activity {
         messages.clear();
         String raw = prefs.getString("messages", null);
         if (raw == null) {
-            messages.add("NOVA AI: أهلًا" + (userName.isEmpty() ? "!" : " " + userName + "!") + "\nواجهة جديدة جاهزة. استخدم الأزرار أو اكتب.");
+            messages.add("NOVA AI: أهلًا" + (userName.isEmpty() ? "!" : " " + userName + "!") + "\nجاهز. جرب الأزرار أو اكتب.");
             return;
         }
         try {
