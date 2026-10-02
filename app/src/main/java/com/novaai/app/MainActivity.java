@@ -9,6 +9,7 @@ import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.Vibrator;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.Button;
@@ -40,13 +41,14 @@ public class MainActivity extends Activity {
     private static final int MUTED = Color.parseColor("#7A8BA3");
 
     private static final String PREFS = "nova_ai";
-    private static final int FREE_LIMIT = 20;
-    private static final int PREMIUM_LIMIT = 250;
+    private static final int FREE_LIMIT = 25;
+    private static final int PREMIUM_LIMIT = 300;
 
     private SharedPreferences prefs;
     private String userName = "";
     private boolean premium = false;
     private int usage = 0;
+    private int totalSent = 0;
     private int jokeIndex = 0;
     private ArrayList<String> messages = new ArrayList<>();
 
@@ -62,6 +64,7 @@ public class MainActivity extends Activity {
         userName = prefs.getString("user_name", "");
         premium = prefs.getBoolean("premium", false);
         usage = prefs.getInt("usage", 0);
+        totalSent = prefs.getInt("total_sent", 0);
         loadMessages();
 
         root = new LinearLayout(this);
@@ -80,14 +83,14 @@ public class MainActivity extends Activity {
 
         TextView logo = new TextView(this);
         logo.setText("◆ NOVA");
-        logo.setTextSize(36);
+        logo.setTextSize(38);
         logo.setTypeface(Typeface.DEFAULT_BOLD);
         logo.setTextColor(ACCENT);
         logo.setGravity(Gravity.CENTER);
         root.addView(logo);
 
         TextView sub = new TextView(this);
-        sub.setText("مساعد محلي أقوى\nردود أوسع • واجهة حديثة");
+        sub.setText("أقوى نسخة محلية\nإحصائيات • حساب • أزرار أسرع");
         sub.setTextSize(15);
         sub.setTextColor(MUTED);
         sub.setGravity(Gravity.CENTER);
@@ -128,7 +131,7 @@ public class MainActivity extends Activity {
         LinearLayout top = new LinearLayout(this);
         top.setOrientation(LinearLayout.HORIZONTAL);
         top.setBackgroundColor(SURFACE);
-        top.setPadding(dp(16), dp(16), dp(12), dp(16));
+        top.setPadding(dp(14), dp(14), dp(10), dp(14));
         top.setGravity(Gravity.CENTER_VERTICAL);
 
         LinearLayout titleCol = new LinearLayout(this);
@@ -148,6 +151,10 @@ public class MainActivity extends Activity {
         online.setTextColor(ACCENT);
         titleCol.addView(online);
         top.addView(titleCol);
+
+        Button nameBtn = chipBtn("اسم");
+        nameBtn.setOnClickListener(v -> changeName());
+        top.addView(nameBtn);
 
         Button clearBtn = chipBtn("مسح");
         clearBtn.setOnClickListener(v -> confirmClear());
@@ -171,7 +178,7 @@ public class MainActivity extends Activity {
         LinearLayout chips = new LinearLayout(this);
         chips.setOrientation(LinearLayout.HORIZONTAL);
         chips.setPadding(dp(12), dp(8), dp(12), dp(8));
-        String[] quick = {"نكتة", "الوقت", "التاريخ", "نصيحة", "دعاء", "مساعدة"};
+        String[] quick = {"نكتة", "الوقت", "التاريخ", "نصيحة", "دعاء", "حساب", "مساعدة"};
         for (String q : quick) {
             Button chip = chipBtn(q);
             LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(
@@ -179,7 +186,13 @@ public class MainActivity extends Activity {
                     LinearLayout.LayoutParams.WRAP_CONTENT);
             cp.setMarginEnd(dp(8));
             chips.addView(chip, cp);
-            chip.setOnClickListener(v -> sendQuick(q));
+            chip.setOnClickListener(v -> {
+                if (q.equals("حساب")) {
+                    Toast.makeText(this, "اكتب مثل: 12+8 أو 20/4", Toast.LENGTH_SHORT).show();
+                } else {
+                    sendQuick(q);
+                }
+            });
         }
         chipsScroll.addView(chips);
         root.addView(chipsScroll);
@@ -222,6 +235,28 @@ public class MainActivity extends Activity {
             input.setText("");
             doSend(text, status, msgBox, scroll, send);
         });
+    }
+
+    private void changeName() {
+        final EditText input = new EditText(this);
+        input.setText(userName);
+        input.setTextColor(TEXT);
+        input.setHint("الاسم الجديد");
+        input.setBackground(rounded(CARD, 12));
+        input.setPadding(dp(14), dp(12), dp(14), dp(12));
+        new AlertDialog.Builder(this)
+                .setTitle("تغيير الاسم")
+                .setView(input)
+                .setPositiveButton("حفظ", (d, w) -> {
+                    String n = input.getText().toString().trim();
+                    if (!n.isEmpty()) {
+                        userName = n;
+                        prefs.edit().putString("user_name", userName).apply();
+                        showChatScreen();
+                    }
+                })
+                .setNegativeButton("إلغاء", null)
+                .show();
     }
 
     private void sendQuick(String text) {
@@ -272,9 +307,15 @@ public class MainActivity extends Activity {
             Toast.makeText(this, "انتهت الرسائل. اضغط ترقية", Toast.LENGTH_SHORT).show();
             return;
         }
+        try {
+            Vibrator vib = (Vibrator) getSystemService(VIBRATOR_SERVICE);
+            if (vib != null) vib.vibrate(30);
+        } catch (Exception ignored) {}
+
         messages.add("أنت: " + text);
         usage++;
-        prefs.edit().putInt("usage", usage).apply();
+        totalSent++;
+        prefs.edit().putInt("usage", usage).putInt("total_sent", totalSent).apply();
         saveMessages();
         status.setText("أهلاً " + userName + "   " + (premium ? "Premium" : "مجاني") + "  " + usage + "/" + lim);
         refreshMessages(msgBox);
@@ -283,7 +324,7 @@ public class MainActivity extends Activity {
         send.setEnabled(false);
         send.setText("...");
         executor.execute(() -> {
-            try { Thread.sleep(280 + random.nextInt(450)); } catch (Exception ignored) {}
+            try { Thread.sleep(250 + random.nextInt(400)); } catch (Exception ignored) {}
             String reply = localReply(text);
             mainHandler.post(() -> {
                 messages.add("NOVA AI: " + reply);
@@ -299,15 +340,25 @@ public class MainActivity extends Activity {
     private void confirmClear() {
         new AlertDialog.Builder(this)
                 .setTitle("مسح المحادثة")
-                .setMessage("تبي تمسح كل الرسائل؟")
+                .setMessage("تبي تمسح الرسائل؟")
                 .setPositiveButton("مسح", (d, w) -> {
                     messages.clear();
-                    messages.add("NOVA AI: تم المسح. كيف أقدر أساعدك " + userName + "؟");
+                    messages.add("NOVA AI: تم المسح.\n" + tipOfDay());
                     saveMessages();
                     showChatScreen();
                 })
                 .setNegativeButton("إلغاء", null)
                 .show();
+    }
+
+    private String tipOfDay() {
+        String[] tips = {
+                "نصيحة اليوم: ركّز على مهمة واحدة لمدة 25 دقيقة.",
+                "نصيحة اليوم: اشرب ماء وخذ استراحة قصيرة.",
+                "نصيحة اليوم: اكتب 3 أشياء ممتنة لها اليوم.",
+                "نصيحة اليوم: خطوة صغيرة كل يوم أفضل من حماسة يوم واحد."
+        };
+        return tips[Calendar.getInstance().get(Calendar.DAY_OF_YEAR) % tips.length];
     }
 
     private void showPlansScreen() {
@@ -320,22 +371,38 @@ public class MainActivity extends Activity {
         root.addView(back);
 
         TextView title = new TextView(this);
-        title.setText("الخطط");
-        title.setTextSize(28);
+        title.setText("الخطط والإحصائيات");
+        title.setTextSize(24);
         title.setTypeface(Typeface.DEFAULT_BOLD);
         title.setTextColor(TEXT);
-        title.setPadding(0, dp(20), 0, dp(20));
+        title.setPadding(0, dp(18), 0, dp(16));
         root.addView(title);
 
-        root.addView(planCard("مجاني", "20 رسالة • تجربة أساسية", !premium, false));
-        LinearLayout.LayoutParams pp = matchWrap();
-        pp.topMargin = dp(12);
-        root.addView(planCard("Premium", "250 رسالة • تجربة أوسع", premium, true), pp);
+        LinearLayout stats = new LinearLayout(this);
+        stats.setOrientation(LinearLayout.VERTICAL);
+        stats.setBackground(rounded(CARD, 16));
+        stats.setPadding(dp(16), dp(16), dp(16), dp(16));
+        TextView st = new TextView(this);
+        st.setText("إحصائياتك");
+        st.setTextColor(ACCENT);
+        st.setTypeface(Typeface.DEFAULT_BOLD);
+        stats.addView(st);
+        TextView sd = new TextView(this);
+        sd.setText("إجمالي الرسائل المرسلة: " + totalSent + "\nالجلسة الحالية: " + usage + "\nالحساب: " + userName);
+        sd.setTextColor(MUTED);
+        sd.setPadding(0, dp(8), 0, 0);
+        stats.addView(sd);
+        root.addView(stats);
+
+        LinearLayout.LayoutParams gap = matchWrap();
+        gap.topMargin = dp(12);
+        root.addView(planCard("مجاني", "25 رسالة", !premium, false), gap);
+        root.addView(planCard("Premium", "300 رسالة", premium, true), gap);
 
         if (!premium) {
             Button activate = primaryBtn("تفعيل Premium للتجربة");
             LinearLayout.LayoutParams ap = matchWrap();
-            ap.topMargin = dp(24);
+            ap.topMargin = dp(20);
             root.addView(activate, ap);
             activate.setOnClickListener(v -> {
                 premium = true;
@@ -346,7 +413,7 @@ public class MainActivity extends Activity {
         }
 
         TextView note = new TextView(this);
-        note.setText("التفعيل تجريبي — لا يوجد دفع حقيقي.");
+        note.setText("NOVA AI v1.0 محلي — لا دفع حقيقي.");
         note.setTextSize(12);
         note.setTextColor(MUTED);
         note.setPadding(0, dp(18), 0, 0);
@@ -356,24 +423,24 @@ public class MainActivity extends Activity {
     private LinearLayout planCard(String name, String desc, boolean current, boolean pro) {
         LinearLayout card = new LinearLayout(this);
         card.setOrientation(LinearLayout.VERTICAL);
-        card.setBackground(rounded(pro ? ACCENT_DIM : CARD, 18));
-        card.setPadding(dp(18), dp(18), dp(18), dp(18));
+        card.setBackground(rounded(pro ? ACCENT_DIM : CARD, 16));
+        card.setPadding(dp(16), dp(16), dp(16), dp(16));
         TextView t = new TextView(this);
         t.setText(name);
-        t.setTextSize(18);
+        t.setTextSize(17);
         t.setTypeface(Typeface.DEFAULT_BOLD);
         t.setTextColor(pro ? ACCENT : TEXT);
         card.addView(t);
         TextView d = new TextView(this);
         d.setText(desc);
         d.setTextColor(MUTED);
-        d.setPadding(0, dp(8), 0, 0);
+        d.setPadding(0, dp(6), 0, 0);
         card.addView(d);
         if (current) {
             TextView c = new TextView(this);
-            c.setText("✓ خطتك الحالية");
+            c.setText("✓ الحالية");
             c.setTextColor(ACCENT);
-            c.setPadding(0, dp(10), 0, 0);
+            c.setPadding(0, dp(8), 0, 0);
             card.addView(c);
         }
         return card;
@@ -399,112 +466,91 @@ public class MainActivity extends Activity {
         String m = message.toLowerCase().trim();
 
         if (has(m, "مع السلامة", "مع السلامه", "باي", "وداع", "bye", "إلى اللقاء", "الى اللقاء"))
-            return pick("مع السلامة " + userName + "! يومك سعيد.",
-                    "إلى اللقاء " + userName + "! أشوفك قريب.");
+            return pick("مع السلامة " + userName + "! يومك سعيد.", "إلى اللقاء " + userName + "!");
 
         if (m.equals("لا") || m.equals("لأ") || m.equals("لا شكرا") || m.equals("لا شكرًا"))
-            return pick("حاضر.", "تمام، أنا هنا إذا احتجت.");
+            return pick("حاضر.", "تمام.");
 
         if (m.equals("نعم") || m.equals("ايوه") || m.equals("أيوه") || m.equals("ايه") || m.equals("يب"))
-            return pick("تم!", "تمام، تفضل.");
+            return pick("تم!", "تمام.");
 
         if (has(m, "سلام", "هلا", "مرحبا", "مرحباً", "hello", "hi", "صباح", "مساء"))
-            return pick("وعليكم السلام " + userName + "! كيف أقدر أساعدك؟",
-                    "هلا " + userName + "! تفضل.");
+            return pick("وعليكم السلام " + userName + "!", "هلا " + userName + "!");
 
         if (has(m, "كيف حالك", "كيفك", "أخبارك", "اخبارك", "شلونك"))
-            return pick("بخير الحمد لله يا " + userName + "! وأنت؟", "تمام وبأفضل حال!");
+            return "بخير الحمد لله يا " + userName + "! وأنت؟";
 
         if (has(m, "اسمك", "من أنت", "من انت", "وش اسمك", "ايش اسمك"))
-            return "أنا NOVA AI — مساعد محلي. أرد على الوقت، التاريخ، النكت، النصائح، الأدعية، والمساعدة.";
+            return "أنا NOVA AI — مساعد محلي قوي. جرب الأزرار أو اكتب حساب مثل 9*3.";
 
         if (has(m, "شكرا", "شكرًا", "شكراً", "مشكور", "thanks", "يسلمو"))
-            return pick("العفو!", "ولا يهمك!", "بخدمتك.");
+            return pick("العفو!", "بخدمتك.");
 
-        if (has(m, "تساعد", "مساعدة", "ساعدني", "تقدر", "help", "وش تقدر", "ايش تقدر", "أي خدمة", "اي خدمة", "مشروع"))
-            return "أكيد " + userName + "!\n• الوقت والتاريخ\n• نكت\n• نصائح\n• دعاء\n• مسح المحادثة\n• ترقية\n\nللاحتياج الأعمق (برمجة/حسابات معقدة) استخدم أدوات متخصصة أو ذكاء سحابي لاحقًا.";
+        if (has(m, "تساعد", "مساعدة", "ساعدني", "تقدر", "help", "مشروع", "أي خدمة", "اي خدمة"))
+            return "أكيد " + userName + "!\n• وقت وتاريخ\n• نكت ونصائح ودعاء\n• حساب بسيط 12+5\n• تغيير الاسم / مسح / ترقية\n• إحصائيات في PRO";
 
-        if (has(m, "وقت", "ساعه", "ساعة", "كم الساعه", "كم الساعة", "التوقيت")) {
+        if (has(m, "وقت", "ساعه", "ساعة", "كم الساعه", "كم الساعة")) {
             Calendar c = Calendar.getInstance();
-            return "الوقت التقريبي: " + String.format("%02d:%02d",
-                    c.get(Calendar.HOUR_OF_DAY), c.get(Calendar.MINUTE));
+            return "الوقت: " + String.format("%02d:%02d", c.get(Calendar.HOUR_OF_DAY), c.get(Calendar.MINUTE));
         }
 
-        if (has(m, "تاريخ", "اليوم", "كم تاريخ", "أي يوم")) {
+        if (has(m, "تاريخ", "اليوم", "كم تاريخ")) {
             Calendar c = Calendar.getInstance();
             String[] days = {"الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"};
-            int day = c.get(Calendar.DAY_OF_WEEK); // 1=Sunday
-            return "اليوم " + days[day - 1] + " — التاريخ: "
-                    + c.get(Calendar.DAY_OF_MONTH) + "/"
-                    + (c.get(Calendar.MONTH) + 1) + "/"
-                    + c.get(Calendar.YEAR);
+            return "اليوم " + days[c.get(Calendar.DAY_OF_WEEK) - 1] + " — "
+                    + c.get(Calendar.DAY_OF_MONTH) + "/" + (c.get(Calendar.MONTH) + 1) + "/" + c.get(Calendar.YEAR);
         }
 
-        if (has(m, "نكتة", "نكته", "نكت", "اضحكني", "joke", "ضحكني")) {
+        if (has(m, "نكتة", "نكته", "نكت", "اضحكني", "joke")) {
             String[] jokes = {
                     "ليش الكمبيوتر راح للدكتور؟ عشان عنده فيروس! 😄",
-                    "المبرمج قال لزوجته: أحبك من 1 إلى 10... فقالت: وأنت؟ قال: من 0 إلى 1 فقط 😅",
-                    "ليش الـ WiFi حزين؟ لأنه فقد الـ connection 😢",
-                    "دخل بايثون على مطعم... قال له النادل: SyntaxError 😂",
-                    "ليش الهاتف ما يضحك؟ لأنه على Silent mode 🤫",
-                    "ليش السيرفر ما ينام؟ عنده uptime 24/7 😴",
-                    "واحد يبي ينسخ ملف... قال: Ctrl... ونسي الباقي 😆"
+                    "المبرمج: أحبك من 1 إلى 10... زوجته: وأنت؟ قال: من 0 إلى 1 😅",
+                    "ليش الـ WiFi حزين؟ فقد الـ connection 😢",
+                    "بايثون دخل مطعم... النادل: SyntaxError 😂",
+                    "الهاتف ما يضحك؟ لأنه Silent mode 🤫"
             };
-            String joke = jokes[jokeIndex % jokes.length];
+            String j = jokes[jokeIndex % jokes.length];
             jokeIndex++;
-            return joke;
+            return j;
         }
 
-        if (has(m, "نصيحة", "نصيحه", "تحفيز", "تحمسني", "همة"))
-            return pick(
-                    "ابدأ بخطوة صغيرة اليوم — الاستمرارية أقوى من الحماس.",
-                    "خذ راحة قصيرة، بعدين ركّز على هدف واحد.",
-                    "لا تقارن نفسك بالناس. قارن نفسك بأمس.",
-                    "النجاح تراكم أيام بسيطة، مو يوم واحد مثالي."
-            );
+        if (has(m, "نصيحة", "نصيحه", "تحفيز", "تحمسني"))
+            return tipOfDay().replace("نصيحة اليوم: ", "");
 
-        if (has(m, "دعاء", "ادعية", "اللهم", "ذكر"))
-            return pick(
-                    "اللهم إني أسألك العافية في الدنيا والآخرة.",
-                    "يا مقلب القلوب ثبّت قلبي على دينك.",
-                    "اللهم يسّر وأعن ولا تعسّر."
-            );
+        if (has(m, "دعاء", "ادعية", "اللهم"))
+            return pick("اللهم إني أسألك العافية.", "يا مقلب القلوب ثبّت قلبي على دينك.", "اللهم يسّر وأعن.");
 
-        if (has(m, "😂", "🤣", "😆", "ضحك", "حلو", "حلوه", "زين", "ممتاز", "رائع"))
-            return pick("يسعدني!", "تبي نكتة ثانية؟", "هههه تمام!");
+        if (has(m, "إحصائ", "كم رسالة", "احصائ"))
+            return "أرسلت إجمالي " + totalSent + " رسالة. الحالي: " + usage;
 
-        if (has(m, "حزين", "زعلان", "تعبان", "ضايق", "ممل", "مضغوط"))
-            return "آسف إنك تحس كذا. جرب: نفس عميق، راحة قصيرة، أو اكتب اللي مضايقك. تبي نصيحة أو دعاء؟";
+        if (has(m, "😂", "🤣", "ضحك", "حلو", "ممتاز", "زين"))
+            return pick("يسعدني!", "تبي نكتة؟");
 
-        if (has(m, "درس", "مذاكرة", "اختبار", "امتحان", "دراسة"))
-            return "نصيحة مذاكرة: ركّز 25 دقيقة، ارتاح 5، وكرر. ابدأ بأصعب جزء وأنت مركز.";
+        if (has(m, "حزين", "زعلان", "تعبان", "ضايق"))
+            return "آسف. تبي نصيحة أو دعاء؟";
 
-        if (has(m, "رياضة", "تمرين", "جيم", "مشي"))
-            return "حتى 15–20 دقيقة مشي يوميًا فرق كبير. الثبات أهم من الشدة.";
+        if (has(m, "درس", "مذاكرة", "امتحان", "دراسة"))
+            return "ذاكر 25 دقيقة ثم راحة 5. ابدأ بالأصعب.";
+
+        if (has(m, "رياضة", "تمرين", "مشي"))
+            return "مشي 15–20 دقيقة يوميًا بداية ممتازة.";
 
         if (has(m, "نوم", "سهر", "أرق"))
-            return "حاول تثبت وقت نوم، وقلل الشاشة قبل النوم بنصف ساعة. الجوال على صامت يساعد.";
+            return "ثبّت وقت نوم وقلل الشاشة قبلها.";
 
-        if (has(m, "nova", "نوفا", "تطبيق", "شكل", "ألوان", "تصميم"))
-            return "NOVA AI نسخة محلية قوية: واجهة داكنة، أزرار سريعة، ردود أوسع، بدون خادم حاليًا.";
+        if (has(m, "nova", "نوفا", "تطبيق"))
+            return "NOVA AI v1 محلي: واجهة قوية، إحصائيات، حساب، أزرار سريعة.";
 
-        if (has(m, "premium", "بريميوم", "ترقية", "اشتراك"))
-            return "المجاني 20 رسالة، Premium التجريبية 250. من زر الترقية. لا دفع حقيقي بعد.";
+        if (has(m, "premium", "ترقية", "اشتراك"))
+            return "مجاني 25 / Premium 300. تفعيل تجريبي بدون دفع.";
 
-        if (has(m, "طقس", "جو", "حر", "برد", "مطر"))
-            return "ما أقدر أعرف الطقس الحقيقي بدون خدمة خارجية. افتح تطبيق الطقس عندك.";
-
-        if (has(m, "أخبار", "خبر"))
-            return "ما عندي بث أخبار مباشر. اعتمد مصدر موثوق.";
-
-        // عمليات حسابية بسيطة: 5+3 أو 10-2
         String calc = trySimpleMath(m);
         if (calc != null) return calc;
 
         return pick(
-                "فهمت: «" + message + "»\nجرب: وقت، تاريخ، نكتة، نصيحة، دعاء، أو مساعدة.",
-                "وصلت. النسخة المحلية أقوى من قبل لكنها محدودة. استخدم الأزرار السريعة.",
-                "ما عندي رد جاهز بالضبط. صغ سؤالك بطريقة ثانية أو اضغط مساعدة."
+                "فهمت: «" + message + "»\nجرب الأزرار أو حساب مثل 15-4.",
+                "وصلت. استخدم مساعدة أو الأزرار السريعة.",
+                "ما عندي رد جاهز. جرب صياغة ثانية."
         );
     }
 
@@ -515,7 +561,7 @@ public class MainActivity extends Activity {
                 String[] p = m.split("\\+");
                 if (p.length == 2) return "النتيجة: " + (Double.parseDouble(p[0]) + Double.parseDouble(p[1]));
             }
-            if (m.contains("-") && !m.startsWith("-")) {
+            if (m.contains("-") && m.indexOf("-") > 0) {
                 String[] p = m.split("-");
                 if (p.length == 2) return "النتيجة: " + (Double.parseDouble(p[0]) - Double.parseDouble(p[1]));
             }
@@ -527,7 +573,7 @@ public class MainActivity extends Activity {
                 String[] p = m.split("[÷/]");
                 if (p.length == 2) {
                     double b = Double.parseDouble(p[1]);
-                    if (b == 0) return "ما ينفع القسمة على صفر.";
+                    if (b == 0) return "ما ينفع ÷ صفر.";
                     return "النتيجة: " + (Double.parseDouble(p[0]) / b);
                 }
             }
@@ -560,7 +606,7 @@ public class MainActivity extends Activity {
         b.setTextColor(ACCENT);
         b.setTextSize(12);
         b.setBackground(rounded(CARD, 14));
-        b.setPadding(dp(12), dp(6), dp(12), dp(6));
+        b.setPadding(dp(10), dp(6), dp(10), dp(6));
         return b;
     }
 
@@ -581,7 +627,7 @@ public class MainActivity extends Activity {
         messages.clear();
         String raw = prefs.getString("messages", null);
         if (raw == null) {
-            messages.add("NOVA AI: أهلًا" + (userName.isEmpty() ? "!" : " " + userName + "!") + "\nجاهز. جرب الأزرار أو اكتب.");
+            messages.add("NOVA AI: أهلًا" + (userName.isEmpty() ? "!" : " " + userName + "!") + "\n" + tipOfDay());
             return;
         }
         try {
