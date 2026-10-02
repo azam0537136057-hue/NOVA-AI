@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.SharedPreferences;
 import android.graphics.Color;
+import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.os.Handler;
@@ -27,6 +28,17 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class MainActivity extends Activity {
+
+    // ألوان جديدة
+    private static final int BG = Color.parseColor("#070B14");
+    private static final int SURFACE = Color.parseColor("#0F1623");
+    private static final int CARD = Color.parseColor("#151D2E");
+    private static final int ACCENT = Color.parseColor("#00E5A8");
+    private static final int ACCENT_DIM = Color.parseColor("#0A3D32");
+    private static final int USER_BUBBLE = Color.parseColor("#1A2740");
+    private static final int BOT_BUBBLE = Color.parseColor("#121A28");
+    private static final int TEXT = Color.parseColor("#E8EEF7");
+    private static final int MUTED = Color.parseColor("#7A8BA3");
 
     private static final String PREFS = "nova_ai";
     private static final int FREE_LIMIT = 15;
@@ -55,7 +67,7 @@ public class MainActivity extends Activity {
 
         root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setBackgroundColor(Color.parseColor("#0B0B14"));
+        root.setBackgroundColor(BG);
         setContentView(root);
 
         if (userName.isEmpty()) showAccountScreen();
@@ -67,39 +79,33 @@ public class MainActivity extends Activity {
         root.setGravity(Gravity.CENTER);
         root.setPadding(dp(28), dp(28), dp(28), dp(28));
 
-        TextView badge = new TextView(this);
-        badge.setText("NOVA AI");
-        badge.setTextSize(34);
-        badge.setTextColor(Color.parseColor("#8B7CFF"));
-        badge.setGravity(Gravity.CENTER);
-        root.addView(badge);
+        TextView logo = new TextView(this);
+        logo.setText("◆ NOVA");
+        logo.setTextSize(36);
+        logo.setTypeface(Typeface.DEFAULT_BOLD);
+        logo.setTextColor(ACCENT);
+        logo.setGravity(Gravity.CENTER);
+        root.addView(logo);
 
         TextView sub = new TextView(this);
-        sub.setText("مساعدك المحلي الذكي\nنسخة تجريبية قوية");
+        sub.setText("مساعد ذكي محلي\nواجهة جديدة • تجربة أقوى");
         sub.setTextSize(15);
-        sub.setTextColor(Color.parseColor("#9A9AB0"));
+        sub.setTextColor(MUTED);
         sub.setGravity(Gravity.CENTER);
-        sub.setPadding(0, dp(12), 0, dp(28));
+        sub.setPadding(0, dp(14), 0, dp(32));
         root.addView(sub);
 
         EditText nameInput = new EditText(this);
-        nameInput.setHint("اكتب اسمك للبدء");
-        nameInput.setTextColor(Color.WHITE);
-        nameInput.setHintTextColor(Color.parseColor("#666680"));
-        nameInput.setBackground(rounded(Color.parseColor("#16162A"), 16));
-        nameInput.setPadding(dp(16), dp(16), dp(16), dp(16));
+        nameInput.setHint("اسمك");
+        nameInput.setTextColor(TEXT);
+        nameInput.setHintTextColor(MUTED);
+        nameInput.setBackground(rounded(CARD, 18));
+        nameInput.setPadding(dp(18), dp(16), dp(18), dp(16));
         nameInput.setSingleLine(true);
-        root.addView(nameInput, new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT));
+        root.addView(nameInput, matchWrap());
 
-        Button btn = new Button(this);
-        btn.setText("ابدأ الآن");
-        btn.setTextColor(Color.WHITE);
-        btn.setBackground(rounded(Color.parseColor("#7C5CFF"), 16));
-        LinearLayout.LayoutParams bp = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT);
+        Button btn = primaryBtn("ابدأ الآن");
+        LinearLayout.LayoutParams bp = matchWrap();
         bp.topMargin = dp(16);
         root.addView(btn, bp);
 
@@ -120,51 +126,57 @@ public class MainActivity extends Activity {
         root.setGravity(Gravity.TOP);
         root.setPadding(0, 0, 0, 0);
 
-        // Top bar
+        // Header
         LinearLayout top = new LinearLayout(this);
         top.setOrientation(LinearLayout.HORIZONTAL);
-        top.setBackgroundColor(Color.parseColor("#12121F"));
-        top.setPadding(dp(14), dp(14), dp(10), dp(14));
+        top.setBackgroundColor(SURFACE);
+        top.setPadding(dp(16), dp(16), dp(12), dp(16));
         top.setGravity(Gravity.CENTER_VERTICAL);
+
+        LinearLayout titleCol = new LinearLayout(this);
+        titleCol.setOrientation(LinearLayout.VERTICAL);
+        titleCol.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
 
         TextView title = new TextView(this);
         title.setText("NOVA AI");
         title.setTextSize(20);
-        title.setTextColor(Color.WHITE);
-        title.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
-        top.addView(title);
+        title.setTypeface(Typeface.DEFAULT_BOLD);
+        title.setTextColor(TEXT);
+        titleCol.addView(title);
 
-        Button clearBtn = smallBtn("مسح");
+        TextView online = new TextView(this);
+        online.setText("● محلي • جاهز");
+        online.setTextSize(11);
+        online.setTextColor(ACCENT);
+        titleCol.addView(online);
+        top.addView(titleCol);
+
+        Button clearBtn = chipBtn("مسح");
         clearBtn.setOnClickListener(v -> confirmClear());
         top.addView(clearBtn);
 
-        Button plansBtn = smallBtn(premium ? "Pro" : "ترقية");
+        Button plansBtn = chipBtn(premium ? "PRO" : "ترقية");
         plansBtn.setOnClickListener(v -> showPlansScreen());
         top.addView(plansBtn);
         root.addView(top);
 
         int limit = premium ? PREMIUM_LIMIT : FREE_LIMIT;
         TextView status = new TextView(this);
-        status.setText("أهلاً " + userName + "  •  " + (premium ? "Premium" : "مجاني") + "  " + usage + "/" + limit);
+        status.setText("أهلاً " + userName + "   " + (premium ? "Premium" : "مجاني") + "  " + usage + "/" + limit);
         status.setTextSize(12);
-        status.setTextColor(Color.parseColor("#8A8AA0"));
-        status.setPadding(dp(16), dp(8), dp(16), dp(4));
+        status.setTextColor(MUTED);
+        status.setPadding(dp(16), dp(10), dp(16), dp(4));
         root.addView(status);
 
-        // Quick actions
+        // Quick chips
         HorizontalScrollView chipsScroll = new HorizontalScrollView(this);
         chipsScroll.setHorizontalScrollBarEnabled(false);
         LinearLayout chips = new LinearLayout(this);
         chips.setOrientation(LinearLayout.HORIZONTAL);
-        chips.setPadding(dp(10), dp(6), dp(10), dp(6));
+        chips.setPadding(dp(12), dp(8), dp(12), dp(8));
         String[] quick = {"نكتة", "الوقت", "التاريخ", "نصيحة", "مساعدة"};
         for (String q : quick) {
-            Button chip = new Button(this);
-            chip.setText(q);
-            chip.setTextSize(12);
-            chip.setTextColor(Color.parseColor("#D0D0FF"));
-            chip.setBackground(rounded(Color.parseColor("#1C1C32"), 20));
-            chip.setPadding(dp(8), dp(4), dp(8), dp(4));
+            Button chip = chipBtn(q);
             LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.WRAP_CONTENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT);
@@ -178,36 +190,33 @@ public class MainActivity extends Activity {
         ScrollView scroll = new ScrollView(this);
         LinearLayout msgBox = new LinearLayout(this);
         msgBox.setOrientation(LinearLayout.VERTICAL);
-        msgBox.setPadding(dp(12), dp(8), dp(12), dp(8));
+        msgBox.setPadding(dp(12), dp(6), dp(12), dp(10));
         scroll.addView(msgBox);
         root.addView(scroll, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, 0, 1));
         refreshMessages(msgBox);
 
-        // Input
+        // Input bar
         LinearLayout bottom = new LinearLayout(this);
         bottom.setOrientation(LinearLayout.HORIZONTAL);
-        bottom.setBackgroundColor(Color.parseColor("#12121F"));
-        bottom.setPadding(dp(10), dp(10), dp(10), dp(10));
+        bottom.setBackgroundColor(SURFACE);
+        bottom.setPadding(dp(12), dp(12), dp(12), dp(12));
         bottom.setGravity(Gravity.CENTER_VERTICAL);
 
         EditText input = new EditText(this);
-        input.setHint("اكتب أي شيء...");
-        input.setTextColor(Color.WHITE);
-        input.setHintTextColor(Color.parseColor("#666680"));
-        input.setBackground(rounded(Color.parseColor("#1A1A2E"), 14));
-        input.setPadding(dp(14), dp(12), dp(14), dp(12));
+        input.setHint("اكتب رسالتك...");
+        input.setTextColor(TEXT);
+        input.setHintTextColor(MUTED);
+        input.setBackground(rounded(CARD, 16));
+        input.setPadding(dp(16), dp(14), dp(16), dp(14));
         input.setSingleLine(true);
         bottom.addView(input, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
 
-        Button send = new Button(this);
-        send.setText("إرسال");
-        send.setTextColor(Color.WHITE);
-        send.setBackground(rounded(Color.parseColor("#7C5CFF"), 14));
+        Button send = primaryBtn("إرسال");
         LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT);
-        sp.setMarginStart(dp(8));
+        sp.setMarginStart(dp(10));
         bottom.addView(send, sp);
         root.addView(bottom);
 
@@ -220,18 +229,16 @@ public class MainActivity extends Activity {
     }
 
     private void sendQuick(String text) {
-        // يعيد فتح الشات مع إرسال مباشر عبر حفظ مؤقت بسيط
-        // نستخدم نفس مسار الإرسال من الشاشة الحالية
-        View statusView = null;
+        TextView statusView = null;
         ScrollView scroll = null;
         LinearLayout msgBox = null;
         Button sendBtn = null;
 
-        // البحث عن العناصر داخل root
         for (int i = 0; i < root.getChildCount(); i++) {
             View c = root.getChildAt(i);
-            if (c instanceof TextView && ((TextView) c).getText().toString().contains("أهلاً")) {
-                statusView = c;
+            if (c instanceof TextView) {
+                String t = ((TextView) c).getText().toString();
+                if (t.contains("أهلاً") || t.contains("اهلا")) statusView = (TextView) c;
             }
             if (c instanceof ScrollView) {
                 scroll = (ScrollView) c;
@@ -240,23 +247,24 @@ public class MainActivity extends Activity {
                 }
             }
         }
-        // آخر صف = الإدخال
         if (root.getChildCount() > 0) {
             View last = root.getChildAt(root.getChildCount() - 1);
             if (last instanceof LinearLayout) {
                 LinearLayout bottom = (LinearLayout) last;
                 for (int i = 0; i < bottom.getChildCount(); i++) {
                     if (bottom.getChildAt(i) instanceof Button) {
-                        sendBtn = (Button) bottom.getChildAt(i);
+                        Button b = (Button) bottom.getChildAt(i);
+                        if ("إرسال".equals(b.getText().toString()) || "...".equals(b.getText().toString())) {
+                            sendBtn = b;
+                        }
                     }
                 }
             }
         }
 
-        if (statusView instanceof TextView && msgBox != null && scroll != null && sendBtn != null) {
-            doSend(text, (TextView) statusView, msgBox, scroll, sendBtn);
+        if (statusView != null && msgBox != null && scroll != null && sendBtn != null) {
+            doSend(text, statusView, msgBox, scroll, sendBtn);
         } else {
-            // احتياطي
             messages.add("أنت: " + text);
             messages.add("NOVA AI: " + localReply(text));
             saveMessages();
@@ -275,7 +283,7 @@ public class MainActivity extends Activity {
         usage++;
         prefs.edit().putInt("usage", usage).apply();
         saveMessages();
-        status.setText("أهلاً " + userName + "  •  " + (premium ? "Premium" : "مجاني") + "  " + usage + "/" + lim);
+        status.setText("أهلاً " + userName + "   " + (premium ? "Premium" : "مجاني") + "  " + usage + "/" + lim);
         refreshMessages(msgBox);
         scroll.post(() -> scroll.fullScroll(View.FOCUS_DOWN));
 
@@ -283,7 +291,7 @@ public class MainActivity extends Activity {
         send.setText("...");
 
         executor.execute(() -> {
-            try { Thread.sleep(350 + random.nextInt(500)); } catch (Exception ignored) {}
+            try { Thread.sleep(300 + random.nextInt(500)); } catch (Exception ignored) {}
             String reply = localReply(text);
             mainHandler.post(() -> {
                 messages.add("NOVA AI: " + reply);
@@ -302,7 +310,7 @@ public class MainActivity extends Activity {
                 .setMessage("تبي تمسح كل الرسائل؟")
                 .setPositiveButton("مسح", (d, w) -> {
                     messages.clear();
-                    messages.add("NOVA AI: تم مسح المحادثة. كيف أقدر أساعدك " + userName + "؟");
+                    messages.add("NOVA AI: تم المسح. كيف أقدر أساعدك " + userName + "؟");
                     saveMessages();
                     showChatScreen();
                 })
@@ -315,34 +323,28 @@ public class MainActivity extends Activity {
         root.setGravity(Gravity.TOP);
         root.setPadding(dp(24), dp(24), dp(24), dp(24));
 
-        Button back = smallBtn("رجوع");
+        Button back = chipBtn("رجوع");
         back.setOnClickListener(v -> showChatScreen());
         root.addView(back);
 
         TextView title = new TextView(this);
         title.setText("الخطط");
-        title.setTextSize(26);
-        title.setTextColor(Color.WHITE);
-        title.setPadding(0, dp(16), 0, dp(16));
+        title.setTextSize(28);
+        title.setTypeface(Typeface.DEFAULT_BOLD);
+        title.setTextColor(TEXT);
+        title.setPadding(0, dp(20), 0, dp(20));
         root.addView(title);
 
-        root.addView(planCard("مجاني", "15 رسالة تجريبية", !premium, false));
-        LinearLayout pro = planCard("Premium", "200 رسالة تجريبية + مزايا أكثر", premium, true);
-        LinearLayout.LayoutParams pp = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT);
+        root.addView(planCard("مجاني", "15 رسالة • تجربة أساسية", !premium, false));
+
+        LinearLayout.LayoutParams pp = matchWrap();
         pp.topMargin = dp(12);
-        root.addView(pro, pp);
+        root.addView(planCard("Premium", "200 رسالة • مزايا أكثر", premium, true), pp);
 
         if (!premium) {
-            Button activate = new Button(this);
-            activate.setText("تفعيل Premium للتجربة");
-            activate.setTextColor(Color.WHITE);
-            activate.setBackground(rounded(Color.parseColor("#7C5CFF"), 14));
-            LinearLayout.LayoutParams ap = new LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT);
-            ap.topMargin = dp(20);
+            Button activate = primaryBtn("تفعيل Premium للتجربة");
+            LinearLayout.LayoutParams ap = matchWrap();
+            ap.topMargin = dp(24);
             root.addView(activate, ap);
             activate.setOnClickListener(v -> {
                 premium = true;
@@ -353,33 +355,37 @@ public class MainActivity extends Activity {
         }
 
         TextView note = new TextView(this);
-        note.setText("ملاحظة: التفعيل تجريبي ولا يوجد دفع حقيقي.");
+        note.setText("التفعيل تجريبي — لا يوجد دفع حقيقي.");
         note.setTextSize(12);
-        note.setTextColor(Color.parseColor("#777790"));
-        note.setPadding(0, dp(16), 0, 0);
+        note.setTextColor(MUTED);
+        note.setPadding(0, dp(18), 0, 0);
         root.addView(note);
     }
 
     private LinearLayout planCard(String name, String desc, boolean current, boolean pro) {
         LinearLayout card = new LinearLayout(this);
         card.setOrientation(LinearLayout.VERTICAL);
-        card.setBackground(rounded(pro ? Color.parseColor("#1A1530") : Color.parseColor("#16162A"), 16));
-        card.setPadding(dp(16), dp(16), dp(16), dp(16));
+        card.setBackground(rounded(pro ? ACCENT_DIM : CARD, 18));
+        card.setPadding(dp(18), dp(18), dp(18), dp(18));
+
         TextView t = new TextView(this);
         t.setText(name);
         t.setTextSize(18);
-        t.setTextColor(pro ? Color.parseColor("#A78BFF") : Color.WHITE);
+        t.setTypeface(Typeface.DEFAULT_BOLD);
+        t.setTextColor(pro ? ACCENT : TEXT);
         card.addView(t);
+
         TextView d = new TextView(this);
         d.setText(desc);
-        d.setTextColor(Color.parseColor("#9A9AB0"));
-        d.setPadding(0, dp(6), 0, 0);
+        d.setTextColor(MUTED);
+        d.setPadding(0, dp(8), 0, 0);
         card.addView(d);
+
         if (current) {
             TextView c = new TextView(this);
             c.setText("✓ خطتك الحالية");
-            c.setTextColor(Color.parseColor("#7C5CFF"));
-            c.setPadding(0, dp(8), 0, 0);
+            c.setTextColor(ACCENT);
+            c.setPadding(0, dp(10), 0, 0);
             card.addView(c);
         }
         return card;
@@ -391,14 +397,12 @@ public class MainActivity extends Activity {
             boolean isUser = m.startsWith("أنت:");
             TextView tv = new TextView(this);
             tv.setText(m);
-            tv.setTextColor(Color.WHITE);
+            tv.setTextColor(TEXT);
             tv.setTextSize(15);
-            tv.setBackground(rounded(isUser ? Color.parseColor("#2A2650") : Color.parseColor("#16162A"), 14));
+            tv.setBackground(rounded(isUser ? USER_BUBBLE : BOT_BUBBLE, 16));
             tv.setPadding(dp(14), dp(12), dp(14), dp(12));
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT);
-            lp.bottomMargin = dp(8);
+            LinearLayout.LayoutParams lp = matchWrap();
+            lp.bottomMargin = dp(10);
             box.addView(tv, lp);
         }
     }
@@ -414,27 +418,25 @@ public class MainActivity extends Activity {
         if (m.equals("لا") || m.equals("لأ") || m.equals("لا شكرا") || m.equals("لا شكرًا"))
             return pick("حاضر.", "تمام، إذا احتجت شيء أنا هنا.", "أوك.");
 
-        if (m.equals("نعم") || m.equals("ايوه") || m.equals("أيوه") || m.equals("ايه") || m.equals("يب") || m.equals("يس"))
-            return pick("تم!", "تمام، كمل...", "أوك، تفضل.");
+        if (m.equals("نعم") || m.equals("ايوه") || m.equals("أيوه") || m.equals("ايه") || m.equals("يب"))
+            return pick("تم!", "تمام.", "أوك، تفضل.");
 
         if (has(m, "سلام", "هلا", "مرحبا", "مرحباً", "hello", "hi", "صباح", "مساء"))
             return pick("وعليكم السلام " + userName + "! كيف أقدر أساعدك؟",
                     "هلا " + userName + "! تفضل.",
-                    "أهلًا " + userName + "! موجود.");
+                    "أهلًا " + userName + "!");
 
         if (has(m, "كيف حالك", "كيفك", "أخبارك", "اخبارك", "شلونك"))
-            return pick("بخير الحمد لله يا " + userName + "! وأنت؟",
-                    "تمام وبأفضل حال!",
-                    "الحمد لله، سعيد بسؤالك.");
+            return pick("بخير الحمد لله يا " + userName + "! وأنت؟", "تمام وبأفضل حال!");
 
         if (has(m, "اسمك", "من أنت", "من انت", "وش اسمك"))
-            return "أنا NOVA AI — مساعد محلي تجريبي. أرد على الوقت، التاريخ، النكت، النصائح، والمساعدة داخل التطبيق.";
+            return "أنا NOVA AI — مساعد محلي بواجهة جديدة. أرد على الوقت، التاريخ، النكت، النصائح، والمساعدة.";
 
         if (has(m, "شكرا", "شكرًا", "شكراً", "مشكور", "thanks", "يسلمو"))
             return pick("العفو!", "ولا يهمك!", "بخدمتك.");
 
         if (has(m, "تساعد", "مساعدة", "ساعدني", "تقدر", "help", "وش تقدر", "ايش تقدر", "أي خدمة", "اي خدمة"))
-            return "أكيد " + userName + "!\n• الوقت والتاريخ\n• نكت متنوعة\n• نصائح سريعة\n• مسح المحادثة\n• ترقية Premium\n\nأو استخدم الأزرار السريعة فوق.";
+            return "أكيد " + userName + "!\n• الوقت والتاريخ\n• نكت\n• نصائح\n• مسح المحادثة\n• ترقية Premium\n\nاستخدم الأزرار السريعة فوق.";
 
         if (has(m, "وقت", "ساعه", "ساعة", "كم الساعه", "كم الساعة", "التوقيت")) {
             Calendar c = Calendar.getInstance();
@@ -455,8 +457,7 @@ public class MainActivity extends Activity {
                     "ليش الـ WiFi حزين؟ لأنه فقد الـ connection 😢",
                     "دخل بايثون على مطعم... قال له النادل: SyntaxError 😂",
                     "ليش الهاتف ما يضحك؟ لأنه على Silent mode 🤫",
-                    "ليش السيرفر ما ينام؟ عنده uptime 24/7 😴",
-                    "واحد سأل: كيف أنسخ ملف؟ قال له: Ctrl... بعدين نسي الباقي 😆"
+                    "ليش السيرفر ما ينام؟ عنده uptime 24/7 😴"
             };
             String joke = jokes[jokeIndex % jokes.length];
             jokeIndex++;
@@ -466,29 +467,26 @@ public class MainActivity extends Activity {
         if (has(m, "نصيحة", "نصيحه", "تحفيز", "تحمسني", "همة"))
             return pick(
                     "ابدأ بخطوة صغيرة اليوم — الاستمرارية أقوى من الحماس.",
-                    "خذ راحة 10 دقائق، بعدين ارجع لهدف واحد بس.",
+                    "خذ راحة قصيرة، بعدين ركّز على هدف واحد.",
                     "لا تقارن نفسك بالناس. قارن نفسك بأمس."
             );
 
         if (has(m, "😂", "🤣", "😆", "ضحك", "حلو", "حلوه", "زين", "ممتاز", "رائع"))
             return pick("يسعدني!", "تبي نكتة ثانية؟", "هههه تمام!");
 
-        if (has(m, "حزين", "زعلان", "تعبان", "ضايق", "ممل", "مكركب"))
-            return "آسف إنك تحس كذا. تبي نكتة خفيفة ولا نصيحة سريعة؟";
+        if (has(m, "حزين", "زعلان", "تعبان", "ضايق", "ممل"))
+            return "آسف إنك تحس كذا. تبي نكتة ولا نصيحة سريعة؟";
 
-        if (has(m, "nova", "نوفا", "تطبيق", "من صنعك", "مطور"))
-            return "NOVA AI نسخة تجريبية محلية قوية. بدون خادم خارجي حالياً، مع واجهة سريعة وأزرار مساعدة.";
+        if (has(m, "nova", "نوفا", "تطبيق", "شكل", "ألوان", "تصميم"))
+            return "واجهة NOVA الجديدة: ألوان داكنة مع أخضر نعناعي، فقاعات أوضح، وأزرار سريعة.";
 
         if (has(m, "premium", "بريميوم", "ترقية", "اشتراك"))
-            return "المجاني 15 رسالة، Premium التجريبية 200. من زر الترقية. لا يوجد دفع حقيقي بعد.";
-
-        if (has(m, "مسح", "نظف", "حذف المحادثة"))
-            return "تقدر تضغط زر «مسح» فوق عشان تفضي المحادثة.";
+            return "المجاني 15 رسالة، Premium 200. من زر الترقية. لا دفع حقيقي بعد.";
 
         return pick(
-                "فهمت: «" + message + "»\nمو ضمن قاعدة الردود بعد. جرب الأزرار السريعة فوق، أو اسأل عن وقت/نكتة/نصيحة.",
-                "وصلت. هذي نسخة محلية قوية لكن محدودة. جرب: مساعدة، نكتة، نصيحة.",
-                "ما عندي رد جاهز بالضبط. أعد صياغة السؤال أو استخدم الأزرار السريعة."
+                "فهمت: «" + message + "»\nجرب الأزرار السريعة أو: وقت، نكتة، نصيحة، مساعدة.",
+                "وصلت. النسخة المحلية محدودة. جرب الأزرار فوق.",
+                "ما عندي رد جاهز بالضبط. أعد صياغة السؤال أو استخدم الأزرار."
         );
     }
 
@@ -501,13 +499,23 @@ public class MainActivity extends Activity {
         return options[random.nextInt(options.length)];
     }
 
-    private Button smallBtn(String text) {
+    private Button primaryBtn(String text) {
         Button b = new Button(this);
         b.setText(text);
-        b.setTextColor(Color.parseColor("#C4B5FD"));
-        b.setBackground(rounded(Color.parseColor("#1C1C32"), 12));
+        b.setTextColor(Color.parseColor("#04120E"));
+        b.setTypeface(Typeface.DEFAULT_BOLD);
+        b.setBackground(rounded(ACCENT, 16));
+        b.setPadding(dp(18), dp(12), dp(18), dp(12));
+        return b;
+    }
+
+    private Button chipBtn(String text) {
+        Button b = new Button(this);
+        b.setText(text);
+        b.setTextColor(ACCENT);
         b.setTextSize(12);
-        b.setPadding(dp(8), dp(4), dp(8), dp(4));
+        b.setBackground(rounded(CARD, 14));
+        b.setPadding(dp(12), dp(6), dp(12), dp(6));
         return b;
     }
 
@@ -518,11 +526,17 @@ public class MainActivity extends Activity {
         return g;
     }
 
+    private LinearLayout.LayoutParams matchWrap() {
+        return new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT);
+    }
+
     private void loadMessages() {
         messages.clear();
         String raw = prefs.getString("messages", null);
         if (raw == null) {
-            messages.add("NOVA AI: مرحبًا " + (userName.isEmpty() ? "" : userName) + "!\nأنا NOVA AI — استخدم الأزرار السريعة أو اكتب أي شيء.");
+            messages.add("NOVA AI: أهلًا" + (userName.isEmpty() ? "!" : " " + userName + "!") + "\nواجهة جديدة جاهزة. استخدم الأزرار أو اكتب.");
             return;
         }
         try {
