@@ -33,7 +33,7 @@ import java.util.concurrent.Executors;
 
 public class MainActivity extends Activity {
 
-    private int BG, SURFACE, CARD, ACCENT, ACCENT_DIM, USER_BUBBLE, BOT_BUBBLE, TEXT, MUTED;
+    private int BG, SURFACE, CARD, ACCENT, USER_BUBBLE, BOT_BUBBLE, TEXT, MUTED;
     private static final String PREFS = "nova_ai";
     private static final int FREE_LIMIT = 50;
     private static final int PREMIUM_LIMIT = 600;
@@ -50,10 +50,9 @@ public class MainActivity extends Activity {
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private final Random random = new Random();
     private String calcExpr = "";
-    private TextView calcDisplay, tasbihText, waterText, azkarText;
+    private TextView calcDisplay, tasbihText, waterText, azkarText, swText;
     private long swStart = 0;
     private boolean swRunning = false;
-    private TextView swText;
     private final Runnable swTick = new Runnable() {
         public void run() {
             if (swRunning && swText != null) {
@@ -107,29 +106,14 @@ public class MainActivity extends Activity {
         TEXT = Color.parseColor("#E8EEF7");
         MUTED = Color.parseColor("#7A8BA3");
         if (themeId == 1) {
-            BG = Color.parseColor("#070B16");
-            SURFACE = Color.parseColor("#0E1524");
-            CARD = Color.parseColor("#152033");
-            ACCENT = Color.parseColor("#4DA3FF");
-            ACCENT_DIM = Color.parseColor("#0D2A4A");
-            USER_BUBBLE = Color.parseColor("#1A2A45");
-            BOT_BUBBLE = Color.parseColor("#121C2C");
+            BG = Color.parseColor("#070B16"); SURFACE = Color.parseColor("#0E1524"); CARD = Color.parseColor("#152033");
+            ACCENT = Color.parseColor("#4DA3FF"); USER_BUBBLE = Color.parseColor("#1A2A45"); BOT_BUBBLE = Color.parseColor("#121C2C");
         } else if (themeId == 2) {
-            BG = Color.parseColor("#0B0714");
-            SURFACE = Color.parseColor("#140F1F");
-            CARD = Color.parseColor("#1C152E");
-            ACCENT = Color.parseColor("#B794F6");
-            ACCENT_DIM = Color.parseColor("#2A1B4A");
-            USER_BUBBLE = Color.parseColor("#2A2040");
-            BOT_BUBBLE = Color.parseColor("#18122A");
+            BG = Color.parseColor("#0B0714"); SURFACE = Color.parseColor("#140F1F"); CARD = Color.parseColor("#1C152E");
+            ACCENT = Color.parseColor("#B794F6"); USER_BUBBLE = Color.parseColor("#2A2040"); BOT_BUBBLE = Color.parseColor("#18122A");
         } else {
-            BG = Color.parseColor("#070B14");
-            SURFACE = Color.parseColor("#0F1623");
-            CARD = Color.parseColor("#151D2E");
-            ACCENT = Color.parseColor("#00E5A8");
-            ACCENT_DIM = Color.parseColor("#0A3D32");
-            USER_BUBBLE = Color.parseColor("#1A2740");
-            BOT_BUBBLE = Color.parseColor("#121A28");
+            BG = Color.parseColor("#070B14"); SURFACE = Color.parseColor("#0F1623"); CARD = Color.parseColor("#151D2E");
+            ACCENT = Color.parseColor("#00E5A8"); USER_BUBBLE = Color.parseColor("#1A2740"); BOT_BUBBLE = Color.parseColor("#121A28");
         }
     }
 
@@ -137,7 +121,7 @@ public class MainActivity extends Activity {
         root.removeAllViews();
         root.setBackgroundColor(BG);
         root.setGravity(Gravity.CENTER);
-        root.setPadding(dp(28), dp(28), dp(28), dp(28));
+        root.setPadding(dp(32), dp(32), dp(32), dp(32));
         TextView logo = new TextView(this);
         logo.setText("◆ NOVA");
         logo.setTextSize(40);
@@ -146,16 +130,16 @@ public class MainActivity extends Activity {
         logo.setGravity(Gravity.CENTER);
         root.addView(logo);
         TextView sub = new TextView(this);
-        sub.setText("v1.7 — أذكار • أدوات • محادثة");
+        sub.setText("نسخة محلية نظيفة");
         sub.setTextColor(MUTED);
         sub.setGravity(Gravity.CENTER);
-        sub.setPadding(0, dp(12), 0, dp(28));
+        sub.setPadding(0, dp(10), 0, dp(28));
         root.addView(sub);
         EditText nameInput = new EditText(this);
         nameInput.setHint("اسمك");
         nameInput.setTextColor(TEXT);
         nameInput.setHintTextColor(MUTED);
-        nameInput.setBackground(rounded(CARD, 18));
+        nameInput.setBackground(rounded(CARD, 16));
         nameInput.setPadding(dp(18), dp(16), dp(18), dp(16));
         nameInput.setSingleLine(true);
         root.addView(nameInput, matchWrap());
@@ -189,10 +173,12 @@ public class MainActivity extends Activity {
         else if (tab == 1) buildTools(content);
         else if (tab == 2) buildNotes(content);
         else buildAbout(content);
+
+        // شريط تنقل أنظف
         LinearLayout nav = new LinearLayout(this);
         nav.setOrientation(LinearLayout.HORIZONTAL);
         nav.setBackgroundColor(SURFACE);
-        nav.setPadding(dp(6), dp(8), dp(6), dp(8));
+        nav.setPadding(dp(10), dp(10), dp(10), dp(10));
         nav.addView(navBtn("محادثة", 0), navWeight());
         nav.addView(navBtn("أدوات", 1), navWeight());
         nav.addView(navBtn("ملاحظات", 2), navWeight());
@@ -207,9 +193,12 @@ public class MainActivity extends Activity {
     private Button navBtn(String label, int id) {
         Button b = new Button(this);
         b.setText(label);
-        b.setTextSize(11);
+        b.setTextSize(12);
         b.setTextColor(tab == id ? Color.parseColor("#04120E") : MUTED);
-        b.setBackground(rounded(tab == id ? ACCENT : CARD, 12));
+        b.setBackground(rounded(tab == id ? ACCENT : Color.TRANSPARENT, 12));
+        LinearLayout.LayoutParams lp = navWeight();
+        lp.setMargins(dp(4), 0, dp(4), 0);
+        b.setLayoutParams(lp);
         b.setOnClickListener(v -> {
             tab = id;
             showMain();
@@ -221,7 +210,7 @@ public class MainActivity extends Activity {
         LinearLayout top = new LinearLayout(this);
         top.setOrientation(LinearLayout.HORIZONTAL);
         top.setBackgroundColor(SURFACE);
-        top.setPadding(dp(14), dp(14), dp(10), dp(14));
+        top.setPadding(dp(16), dp(14), dp(12), dp(14));
         top.setGravity(Gravity.CENTER_VERTICAL);
         LinearLayout col = new LinearLayout(this);
         col.setOrientation(LinearLayout.VERTICAL);
@@ -233,7 +222,7 @@ public class MainActivity extends Activity {
         title.setTextColor(TEXT);
         col.addView(title);
         TextView online = new TextView(this);
-        online.setText("● محلي • جاهز");
+        online.setText("● محلي");
         online.setTextSize(11);
         online.setTextColor(ACCENT);
         col.addView(online);
@@ -241,52 +230,56 @@ public class MainActivity extends Activity {
         return top;
     }
 
+    // ——— محادثة (أزرار قليلة) ———
     private void buildChat(LinearLayout content) {
         LinearLayout top = rowTop("NOVA AI");
         Button clearBtn = chipBtn("مسح");
         clearBtn.setOnClickListener(v -> confirmClear());
         top.addView(clearBtn);
         content.addView(top);
+
         int limit = premium ? PREMIUM_LIMIT : FREE_LIMIT;
         TextView status = new TextView(this);
-        status.setText("أهلاً " + userName + " | " + (premium ? "Pro" : "مجاني") + " " + usage + "/" + limit);
+        status.setText(userName + "  ·  " + (premium ? "Pro" : "مجاني") + "  " + usage + "/" + limit);
         status.setTextSize(12);
         status.setTextColor(MUTED);
-        status.setPadding(dp(16), dp(8), dp(16), dp(4));
+        status.setPadding(dp(16), dp(8), dp(16), dp(6));
         content.addView(status);
-        HorizontalScrollView hs = new HorizontalScrollView(this);
-        hs.setHorizontalScrollBarEnabled(false);
+
+        // 4 أزرار فقط — نظيفة
         LinearLayout chips = new LinearLayout(this);
         chips.setOrientation(LinearLayout.HORIZONTAL);
-        chips.setPadding(dp(12), dp(6), dp(12), dp(6));
-        for (String q : new String[]{"نكتة", "الوقت", "نصيحة", "دعاء", "أذكار", "مساعدة"}) {
+        chips.setPadding(dp(12), dp(4), dp(12), dp(8));
+        chips.setGravity(Gravity.CENTER);
+        String[] quick = {"نكتة", "أذكار", "نصيحة", "مساعدة"};
+        for (String q : quick) {
             Button chip = chipBtn(q);
-            LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-            cp.setMarginEnd(dp(8));
+            LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
+            cp.setMargins(dp(4), 0, dp(4), 0);
             chips.addView(chip, cp);
             chip.setOnClickListener(v -> sendQuick(q, content));
         }
-        hs.addView(chips);
-        content.addView(hs);
+        content.addView(chips);
+
         ScrollView scroll = new ScrollView(this);
         LinearLayout msgBox = new LinearLayout(this);
         msgBox.setOrientation(LinearLayout.VERTICAL);
-        msgBox.setPadding(dp(12), dp(6), dp(12), dp(8));
+        msgBox.setPadding(dp(14), dp(6), dp(14), dp(8));
         scroll.addView(msgBox);
         content.addView(scroll, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, 0, 1));
         refreshMessages(msgBox);
+
         LinearLayout bottom = new LinearLayout(this);
         bottom.setOrientation(LinearLayout.HORIZONTAL);
         bottom.setBackgroundColor(SURFACE);
         bottom.setPadding(dp(12), dp(10), dp(12), dp(10));
         bottom.setGravity(Gravity.CENTER_VERTICAL);
         EditText input = new EditText(this);
-        input.setHint("اكتب...");
+        input.setHint("اكتب رسالة...");
         input.setTextColor(TEXT);
         input.setHintTextColor(MUTED);
-        input.setBackground(rounded(CARD, 16));
+        input.setBackground(rounded(CARD, 14));
         input.setPadding(dp(14), dp(12), dp(14), dp(12));
         input.setSingleLine(true);
         bottom.addView(input, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
@@ -313,7 +306,7 @@ public class MainActivity extends Activity {
             View c = content.getChildAt(i);
             if (c instanceof TextView) {
                 String t = ((TextView) c).getText().toString();
-                if (t.contains("أهلاً") || t.contains("اهلا")) status = (TextView) c;
+                if (t.contains("Pro") || t.contains("مجاني")) status = (TextView) c;
             }
             if (c instanceof ScrollView) {
                 scroll = (ScrollView) c;
@@ -349,7 +342,7 @@ public class MainActivity extends Activity {
         }
         try {
             Vibrator vib = (Vibrator) getSystemService(VIBRATOR_SERVICE);
-            if (vib != null) vib.vibrate(15);
+            if (vib != null) vib.vibrate(12);
         } catch (Exception ignored) {
         }
         messages.add("أنت: " + text);
@@ -357,14 +350,14 @@ public class MainActivity extends Activity {
         totalSent++;
         prefs.edit().putInt("usage", usage).putInt("total_sent", totalSent).apply();
         saveMessages();
-        status.setText("أهلاً " + userName + " | " + (premium ? "Pro" : "مجاني") + " " + usage + "/" + lim);
+        status.setText(userName + "  ·  " + (premium ? "Pro" : "مجاني") + "  " + usage + "/" + lim);
         refreshMessages(msgBox);
         scroll.post(() -> scroll.fullScroll(View.FOCUS_DOWN));
         send.setEnabled(false);
         send.setText("...");
         executor.execute(() -> {
             try {
-                Thread.sleep(160 + random.nextInt(250));
+                Thread.sleep(150 + random.nextInt(200));
             } catch (Exception ignored) {
             }
             String reply = localReply(text);
@@ -379,18 +372,20 @@ public class MainActivity extends Activity {
         });
     }
 
+    // ——— أدوات (مجموعات واضحة) ———
     private void buildTools(LinearLayout content) {
-        content.addView(header("الأدوات"));
+        content.addView(rowTop("الأدوات"));
         ScrollView scroll = new ScrollView(this);
         LinearLayout box = new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
-        box.setPadding(dp(16), dp(8), dp(16), dp(16));
+        box.setPadding(dp(16), dp(10), dp(16), dp(20));
         scroll.addView(box);
         content.addView(scroll, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, 0, 1));
-        LinearLayout.LayoutParams hp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
-        hp.setMarginEnd(dp(8));
+        LinearLayout.LayoutParams half = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
+        half.setMarginEnd(dp(8));
 
+        // أذكار
         box.addView(section("أذكار"));
         azkarText = new TextView(this);
         azkarText.setText(AZKAR_MORNING[0]);
@@ -401,12 +396,12 @@ public class MainActivity extends Activity {
         box.addView(azkarText, matchWrap());
         LinearLayout aRow = new LinearLayout(this);
         aRow.setOrientation(LinearLayout.HORIZONTAL);
-        aRow.setPadding(0, dp(8), 0, 0);
+        aRow.setPadding(0, dp(8), 0, dp(4));
         Button aM = primaryBtn("صباح");
         Button aE = primaryBtn("مساء");
         Button aN = chipBtn("التالي");
-        aRow.addView(aM, hp);
-        aRow.addView(aE, hp);
+        aRow.addView(aM, half);
+        aRow.addView(aE, half);
         aRow.addView(aN, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
         box.addView(aRow);
         final boolean[] evening = {false};
@@ -426,70 +421,85 @@ public class MainActivity extends Activity {
             azkarText.setText(arr[azkarIdx]);
         });
 
-        box.addView(section("مسبحة"));
+        // مسبحة + ماء جنب بعض
+        box.addView(section("مسبحة وماء"));
+        LinearLayout counters = new LinearLayout(this);
+        counters.setOrientation(LinearLayout.HORIZONTAL);
+        // مسبحة
+        LinearLayout tasbihBox = cardBox();
         tasbihText = new TextView(this);
         tasbihText.setText(String.valueOf(tasbih));
-        tasbihText.setTextSize(42);
+        tasbihText.setTextSize(32);
         tasbihText.setTextColor(ACCENT);
         tasbihText.setGravity(Gravity.CENTER);
-        tasbihText.setBackground(rounded(CARD, 16));
-        tasbihText.setPadding(dp(16), dp(20), dp(16), dp(20));
-        box.addView(tasbihText, matchWrap());
-        LinearLayout tRow = new LinearLayout(this);
-        tRow.setOrientation(LinearLayout.HORIZONTAL);
-        tRow.setPadding(0, dp(8), 0, 0);
-        Button tPlus = primaryBtn("+ تسبيح");
-        Button tReset = chipBtn("تصفير");
-        tRow.addView(tPlus, hp);
-        tRow.addView(tReset, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
-        box.addView(tRow);
+        tasbihBox.addView(tasbihText);
+        TextView tl = new TextView(this);
+        tl.setText("تسبيح");
+        tl.setTextColor(MUTED);
+        tl.setGravity(Gravity.CENTER);
+        tl.setTextSize(12);
+        tasbihBox.addView(tl);
+        Button tPlus = primaryBtn("+");
+        tasbihBox.addView(tPlus);
         tPlus.setOnClickListener(v -> {
             tasbih++;
             prefs.edit().putInt("tasbih", tasbih).apply();
             tasbihText.setText(String.valueOf(tasbih));
             vibrate();
         });
+        // ماء
+        LinearLayout waterBox = cardBox();
+        waterText = new TextView(this);
+        waterText.setText(water + "/8");
+        waterText.setTextSize(32);
+        waterText.setTextColor(TEXT);
+        waterText.setGravity(Gravity.CENTER);
+        waterBox.addView(waterText);
+        TextView wl = new TextView(this);
+        wl.setText("أكواب ماء");
+        wl.setTextColor(MUTED);
+        wl.setGravity(Gravity.CENTER);
+        wl.setTextSize(12);
+        waterBox.addView(wl);
+        Button wPlus = primaryBtn("+");
+        waterBox.addView(wPlus);
+        wPlus.setOnClickListener(v -> {
+            water++;
+            prefs.edit().putInt("water", water).apply();
+            waterText.setText(water + "/8");
+            if (water >= 8) Toast.makeText(this, "أحسنت!", Toast.LENGTH_SHORT).show();
+        });
+        LinearLayout.LayoutParams c1 = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
+        c1.setMarginEnd(dp(8));
+        counters.addView(tasbihBox, c1);
+        counters.addView(waterBox, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
+        box.addView(counters);
+        LinearLayout resetRow = new LinearLayout(this);
+        resetRow.setOrientation(LinearLayout.HORIZONTAL);
+        resetRow.setPadding(0, dp(6), 0, 0);
+        Button tReset = chipBtn("تصفير تسبيح");
+        Button wReset = chipBtn("تصفير ماء");
+        resetRow.addView(tReset, half);
+        resetRow.addView(wReset, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
+        box.addView(resetRow);
         tReset.setOnClickListener(v -> {
             tasbih = 0;
             prefs.edit().putInt("tasbih", 0).apply();
             tasbihText.setText("0");
         });
-
-        box.addView(section("عداد الماء"));
-        waterText = new TextView(this);
-        waterText.setText(water + " / 8");
-        waterText.setTextSize(28);
-        waterText.setTextColor(TEXT);
-        waterText.setGravity(Gravity.CENTER);
-        waterText.setBackground(rounded(CARD, 16));
-        waterText.setPadding(dp(16), dp(16), dp(16), dp(16));
-        box.addView(waterText, matchWrap());
-        LinearLayout wRow = new LinearLayout(this);
-        wRow.setOrientation(LinearLayout.HORIZONTAL);
-        wRow.setPadding(0, dp(8), 0, 0);
-        Button wPlus = primaryBtn("+ كوب");
-        Button wReset = chipBtn("تصفير");
-        wRow.addView(wPlus, hp);
-        wRow.addView(wReset, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
-        box.addView(wRow);
-        wPlus.setOnClickListener(v -> {
-            water++;
-            prefs.edit().putInt("water", water).apply();
-            waterText.setText(water + " / 8");
-            if (water >= 8) Toast.makeText(this, "أحسنت!", Toast.LENGTH_SHORT).show();
-        });
         wReset.setOnClickListener(v -> {
             water = 0;
             prefs.edit().putInt("water", 0).apply();
-            waterText.setText("0 / 8");
+            waterText.setText("0/8");
         });
 
-        box.addView(section("آلة حاسبة"));
+        // حاسبة
+        box.addView(section("حاسبة"));
         calcDisplay = new TextView(this);
         calcDisplay.setText(calcExpr.isEmpty() ? "0" : calcExpr);
-        calcDisplay.setTextSize(24);
+        calcDisplay.setTextSize(26);
         calcDisplay.setTextColor(TEXT);
-        calcDisplay.setBackground(rounded(CARD, 14));
+        calcDisplay.setBackground(rounded(CARD, 12));
         calcDisplay.setPadding(dp(16), dp(14), dp(16), dp(14));
         calcDisplay.setGravity(Gravity.END);
         box.addView(calcDisplay, matchWrap());
@@ -497,26 +507,27 @@ public class MainActivity extends Activity {
         for (String[] row : rows) {
             LinearLayout r = new LinearLayout(this);
             r.setOrientation(LinearLayout.HORIZONTAL);
-            r.setPadding(0, dp(6), 0, 0);
+            r.setPadding(0, dp(5), 0, 0);
             for (String key : row) {
                 Button b = chipBtn(key);
                 b.setTextColor(TEXT);
                 LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
-                lp.setMarginEnd(dp(6));
+                lp.setMarginEnd(dp(5));
                 r.addView(b, lp);
                 b.setOnClickListener(v -> onCalcKey(key));
             }
             box.addView(r);
         }
 
-        box.addView(section("BMI"));
+        // BMI + حرارة في بطاقة واحدة منطقياً
+        box.addView(section("صحة وتحويل"));
         EditText weight = field("الوزن كجم");
         EditText height = field("الطول سم");
         box.addView(weight);
         box.addView(height);
         TextView bmiOut = new TextView(this);
         bmiOut.setTextColor(TEXT);
-        bmiOut.setPadding(0, dp(8), 0, 0);
+        bmiOut.setPadding(0, dp(6), 0, 0);
         box.addView(bmiOut);
         Button bmiBtn = primaryBtn("احسب BMI");
         LinearLayout.LayoutParams bp = matchWrap();
@@ -533,20 +544,18 @@ public class MainActivity extends Activity {
                 bmiOut.setText("أدخل أرقام صحيحة");
             }
         });
-
-        box.addView(section("تحويل حرارة"));
-        EditText tempIn = field("درجة الحرارة");
+        EditText tempIn = field("حرارة °C أو °F");
         box.addView(tempIn);
         TextView tempOut = new TextView(this);
         tempOut.setTextColor(TEXT);
-        tempOut.setPadding(0, dp(8), 0, 0);
+        tempOut.setPadding(0, dp(6), 0, 0);
         box.addView(tempOut);
         LinearLayout trow = new LinearLayout(this);
         trow.setOrientation(LinearLayout.HORIZONTAL);
-        trow.setPadding(0, dp(8), 0, 0);
-        Button toF = primaryBtn("إلى F");
-        Button toC = primaryBtn("إلى C");
-        trow.addView(toF, hp);
+        trow.setPadding(0, dp(6), 0, 0);
+        Button toF = primaryBtn("→ F");
+        Button toC = primaryBtn("→ C");
+        trow.addView(toF, half);
         trow.addView(toC, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
         box.addView(trow);
         toF.setOnClickListener(v -> {
@@ -566,21 +575,22 @@ public class MainActivity extends Activity {
             }
         });
 
+        // ساعة إيقاف
         box.addView(section("ساعة إيقاف"));
         swText = new TextView(this);
         swText.setText("00:00.00");
-        swText.setTextSize(30);
+        swText.setTextSize(28);
         swText.setTextColor(TEXT);
         swText.setGravity(Gravity.CENTER);
-        swText.setBackground(rounded(CARD, 14));
-        swText.setPadding(dp(16), dp(16), dp(16), dp(16));
+        swText.setBackground(rounded(CARD, 12));
+        swText.setPadding(dp(14), dp(14), dp(14), dp(14));
         box.addView(swText, matchWrap());
         LinearLayout swRow = new LinearLayout(this);
         swRow.setOrientation(LinearLayout.HORIZONTAL);
         swRow.setPadding(0, dp(8), 0, 0);
         Button swStartBtn = primaryBtn(swRunning ? "إيقاف" : "بدء");
         Button swReset = chipBtn("تصفير");
-        swRow.addView(swStartBtn, hp);
+        swRow.addView(swStartBtn, half);
         swRow.addView(swReset, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
         box.addView(swRow);
         swStartBtn.setOnClickListener(v -> {
@@ -600,35 +610,36 @@ public class MainActivity extends Activity {
             swText.setText("00:00.00");
         });
 
-        box.addView(section("عشوائي + مرور"));
+        // عشوائي + مرور
+        box.addView(section("أخرى"));
         LinearLayout row2 = new LinearLayout(this);
         row2.setOrientation(LinearLayout.HORIZONTAL);
         Button coin = primaryBtn("عملة");
         Button dice = primaryBtn("نرد");
-        row2.addView(coin, hp);
+        row2.addView(coin, half);
         row2.addView(dice, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
         box.addView(row2);
         TextView rnd = new TextView(this);
         rnd.setTextColor(MUTED);
         rnd.setGravity(Gravity.CENTER);
-        rnd.setPadding(0, dp(10), 0, 0);
+        rnd.setPadding(0, dp(8), 0, 0);
         box.addView(rnd);
         coin.setOnClickListener(v -> rnd.setText(random.nextBoolean() ? "ملك" : "كتابة"));
         dice.setOnClickListener(v -> rnd.setText("النرد: " + (random.nextInt(6) + 1)));
         TextView passView = new TextView(this);
-        passView.setText("كلمة المرور");
+        passView.setText("—");
         passView.setTextColor(TEXT);
-        passView.setBackground(rounded(CARD, 14));
-        passView.setPadding(dp(14), dp(14), dp(14), dp(14));
+        passView.setBackground(rounded(CARD, 12));
+        passView.setPadding(dp(12), dp(12), dp(12), dp(12));
         LinearLayout.LayoutParams pp = matchWrap();
-        pp.topMargin = dp(12);
+        pp.topMargin = dp(10);
         box.addView(passView, pp);
         LinearLayout passRow = new LinearLayout(this);
         passRow.setOrientation(LinearLayout.HORIZONTAL);
-        passRow.setPadding(0, dp(8), 0, 0);
-        Button gen = primaryBtn("توليد");
+        passRow.setPadding(0, dp(6), 0, 0);
+        Button gen = primaryBtn("كلمة مرور");
         Button copy = chipBtn("نسخ");
-        passRow.addView(gen, hp);
+        passRow.addView(gen, half);
         passRow.addView(copy, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
         box.addView(passRow);
         gen.setOnClickListener(v -> passView.setText(genPass()));
@@ -639,10 +650,19 @@ public class MainActivity extends Activity {
         });
     }
 
+    private LinearLayout cardBox() {
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setBackground(rounded(CARD, 14));
+        box.setPadding(dp(12), dp(12), dp(12), dp(12));
+        box.setGravity(Gravity.CENTER);
+        return box;
+    }
+
     private void vibrate() {
         try {
             Vibrator vib = (Vibrator) getSystemService(VIBRATOR_SERVICE);
-            if (vib != null) vib.vibrate(12);
+            if (vib != null) vib.vibrate(10);
         } catch (Exception ignored) {
         }
     }
@@ -664,7 +684,7 @@ public class MainActivity extends Activity {
     private String genPass() {
         String chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789@#";
         StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < 14; i++) sb.append(chars.charAt(random.nextInt(chars.length())));
+        for (int i = 0; i < 12; i++) sb.append(chars.charAt(random.nextInt(chars.length())));
         return sb.toString();
     }
 
@@ -690,7 +710,7 @@ public class MainActivity extends Activity {
         content.addView(scroll, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, 0, 1));
         EditText noteInput = new EditText(this);
-        noteInput.setHint("اكتب ملاحظة...");
+        noteInput.setHint("ملاحظة جديدة...");
         noteInput.setTextColor(TEXT);
         noteInput.setHintTextColor(MUTED);
         noteInput.setBackground(rounded(CARD, 14));
@@ -698,7 +718,7 @@ public class MainActivity extends Activity {
         box.addView(noteInput, matchWrap());
         Button add = primaryBtn("إضافة");
         LinearLayout.LayoutParams ap = matchWrap();
-        ap.topMargin = dp(8);
+        ap.topMargin = dp(10);
         ap.bottomMargin = dp(12);
         box.addView(add, ap);
         LinearLayout list = new LinearLayout(this);
@@ -721,6 +741,8 @@ public class MainActivity extends Activity {
             TextView e = new TextView(this);
             e.setText("لا توجد ملاحظات");
             e.setTextColor(MUTED);
+            e.setGravity(Gravity.CENTER);
+            e.setPadding(0, dp(24), 0, 0);
             list.addView(e);
             return;
         }
@@ -729,7 +751,7 @@ public class MainActivity extends Activity {
             final String note = notes.get(i);
             LinearLayout card = new LinearLayout(this);
             card.setOrientation(LinearLayout.VERTICAL);
-            card.setBackground(rounded(CARD, 14));
+            card.setBackground(rounded(CARD, 12));
             card.setPadding(dp(12), dp(12), dp(12), dp(12));
             LinearLayout.LayoutParams cp = matchWrap();
             cp.bottomMargin = dp(8);
@@ -770,16 +792,13 @@ public class MainActivity extends Activity {
                 LinearLayout.LayoutParams.MATCH_PARENT, 0, 1));
         TextView h = new TextView(this);
         h.setText("حولي");
-        h.setTextSize(26);
+        h.setTextSize(24);
         h.setTypeface(Typeface.DEFAULT_BOLD);
         h.setTextColor(TEXT);
         box.addView(h);
         box.addView(infoCard("إحصائيات",
-                "الاسم: " + userName + "\nالجلسة: " + usage + "\nالإجمالي: " + totalSent +
-                        "\nتسبيح: " + tasbih + "\nماء: " + water + "/8\nملاحظات: " + notes.size() +
-                        "\nالخطة: " + (premium ? "Premium" : "مجاني")));
-        box.addView(infoCard("عن المشروع",
-                "NOVA AI v1.7 محلي:\n• محادثة\n• أذكار/مسبحة/ماء/BMI/حاسبة\n• ملاحظات وثيمات\n\nالذكاء السحابي يحتاج API لاحقًا."));
+                userName + "\nرسائل: " + totalSent + " | تسبيح: " + tasbih + " | ماء: " + water + "/8\n" +
+                        (premium ? "Premium" : "مجاني")));
         box.addView(section("الثيم"));
         LinearLayout themes = new LinearLayout(this);
         themes.setOrientation(LinearLayout.HORIZONTAL);
@@ -793,7 +812,7 @@ public class MainActivity extends Activity {
         box.addView(nameBtn, np);
         nameBtn.setOnClickListener(v -> changeName());
         if (!premium) {
-            Button pro = primaryBtn("تفعيل Premium");
+            Button pro = primaryBtn("تفعيل Pro");
             LinearLayout.LayoutParams pp = matchWrap();
             pp.topMargin = dp(10);
             box.addView(pro, pp);
@@ -804,10 +823,10 @@ public class MainActivity extends Activity {
             });
         }
         TextView ver = new TextView(this);
-        ver.setText("NOVA AI v1.7 محلي");
+        ver.setText("NOVA AI v1.8 محلي");
         ver.setTextColor(MUTED);
         ver.setGravity(Gravity.CENTER);
-        ver.setPadding(0, dp(20), 0, 0);
+        ver.setPadding(0, dp(24), 0, 0);
         box.addView(ver);
     }
 
@@ -829,7 +848,7 @@ public class MainActivity extends Activity {
     private LinearLayout infoCard(String title, String body) {
         LinearLayout card = new LinearLayout(this);
         card.setOrientation(LinearLayout.VERTICAL);
-        card.setBackground(rounded(CARD, 16));
+        card.setBackground(rounded(CARD, 14));
         card.setPadding(dp(16), dp(16), dp(16), dp(16));
         LinearLayout.LayoutParams lp = matchWrap();
         lp.topMargin = dp(14);
@@ -881,82 +900,59 @@ public class MainActivity extends Activity {
             tv.setText(m);
             tv.setTextColor(TEXT);
             tv.setTextSize(15);
-            tv.setBackground(rounded(isUser ? USER_BUBBLE : BOT_BUBBLE, 16));
+            tv.setBackground(rounded(isUser ? USER_BUBBLE : BOT_BUBBLE, 14));
             tv.setPadding(dp(14), dp(12), dp(14), dp(12));
             LinearLayout.LayoutParams lp = matchWrap();
-            lp.bottomMargin = dp(10);
+            lp.bottomMargin = dp(8);
             box.addView(tv, lp);
         }
     }
 
     private String localReply(String message) {
         String m = message.toLowerCase().trim();
-
         if (has(m, "مع السلامة", "باي", "وداع", "bye", "إلى اللقاء", "الى اللقاء"))
             return "مع السلامة " + userName + "!";
-
         if (has(m, "مباراة", "ماتش", "نتيجة", "نتائج", "دوري", "هدف", "يلعب", "بيلعب", "فريق"))
             return "ما عندي نتائج مباريات مباشرة. افتح تطبيق رياضي.";
-
-        // أذكار — قبل التحية عشان صباح/مساء
         if (has(m, "أذكار المساء", "اذكار المساء") || m.equals("مساء") || has(m, "مساء الخير"))
-            return "🌙 أذكار المساء:\n" + AZKAR_EVENING[0] + "\n" + AZKAR_EVENING[1] +
-                    "\n(المزيد من أدوات → أذكار)";
-
-        if (has(m, "أذكار", "اذكار", "ذكر", "صباح مساء", "أذكار الصباح", "اذكار الصباح", "صباح الخير")
-                || m.equals("صباح"))
-            return "🌅 أذكار الصباح:\n" + AZKAR_MORNING[0] + "\n" + AZKAR_MORNING[1] +
-                    "\n(المزيد من أدوات → أذكار)";
-
-        if (has(m, "مشروع", "ابغاك", "كمّل", "كمل", "تطوير"))
-            return "مشروع NOVA AI v1.7 جاهز محليًا:\n• محادثة\n• أذكار/مسبحة/ماء/BMI/حاسبة\n• ملاحظات\n• ثيمات\n\nالخطوة الكبيرة: API عند توفر رصيد.";
-
+            return "🌙 " + AZKAR_EVENING[0] + "\n" + AZKAR_EVENING[1];
+        if (has(m, "أذكار", "اذكار", "ذكر", "صباح مساء", "صباح الخير") || m.equals("صباح"))
+            return "🌅 " + AZKAR_MORNING[0] + "\n" + AZKAR_MORNING[1];
+        if (has(m, "مشروع", "ابغاك", "تطوير"))
+            return "NOVA AI v1.8 محلي: محادثة + أدوات نظيفة + ملاحظات + ثيمات.";
         if (has(m, "سلام", "هلا", "مرحبا", "hello", "hi"))
             return "وعليكم السلام " + userName + "!";
-
         if (has(m, "كيف حالك", "كيفك", "شلونك"))
             return "بخير! وأنت؟";
-
         if (has(m, "اسمك", "من أنت", "من انت"))
-            return "أنا NOVA AI v1.7.";
-
+            return "أنا NOVA AI.";
         if (has(m, "شكرا", "شكرًا", "مشكور"))
             return "العفو!";
-
         if (has(m, "مساعدة", "ساعدني", "help"))
-            return "محادثة • أدوات (أذكار/مسبحة/ماء/BMI/حاسبة) • ملاحظات • حولي";
-
+            return "محادثة · أدوات · ملاحظات · حولي\nاكتب أو استخدم الأزرار فوق.";
         if (has(m, "مسبحة", "تسبيح"))
-            return "من أدوات → مسبحة. العدد: " + tasbih;
-
+            return "التسبيح: " + tasbih + " (من أدوات)";
         if (has(m, "ماء", "كوب"))
-            return "من أدوات → ماء. الحالي: " + water + "/8";
-
+            return "الماء: " + water + "/8";
         if (has(m, "وقت", "ساعه", "ساعة", "كم الساعه", "كم الساعة")) {
             Calendar c = Calendar.getInstance();
-            return String.format("الوقت: %02d:%02d", c.get(Calendar.HOUR_OF_DAY), c.get(Calendar.MINUTE));
+            return String.format("%02d:%02d", c.get(Calendar.HOUR_OF_DAY), c.get(Calendar.MINUTE));
         }
-
         if (has(m, "كم تاريخ", "ما التاريخ", "التاريخ") || m.equals("تاريخ")) {
             Calendar c = Calendar.getInstance();
             return c.get(Calendar.DAY_OF_MONTH) + "/" + (c.get(Calendar.MONTH) + 1) + "/" + c.get(Calendar.YEAR);
         }
-
         if (has(m, "نكتة", "نكته", "اضحكني")) {
             String[] j = {"ليش الكمبيوتر راح للدكتور؟ عنده فيروس! 😄", "بايثون في مطعم: SyntaxError 😂"};
             return j[jokeIndex++ % j.length];
         }
-
         if (has(m, "نصيحة", "تحفيز"))
             return "خطوة صغيرة كل يوم أفضل من حماسة يوم واحد.";
-
         if (has(m, "دعاء"))
             return "اللهم يسّر وأعن.";
-
         String calc = tryMath(m.replace("÷", "/").replace("×", "*"));
         if (calc != null) return calc;
-
-        return "فهمت: «" + message + "» — جرب: أذكار، مساعدة، مشروع، أو التبويبات.";
+        return "فهمت. جرب: أذكار · نصيحة · مساعدة · أو تبويب الأدوات.";
     }
 
     private String tryMath(String m) {
@@ -964,18 +960,15 @@ public class MainActivity extends Activity {
             m = m.replace(" ", "");
             if (m.contains("+")) {
                 String[] p = m.split("\\+");
-                if (p.length == 2)
-                    return "النتيجة: " + (Double.parseDouble(p[0]) + Double.parseDouble(p[1]));
+                if (p.length == 2) return "النتيجة: " + (Double.parseDouble(p[0]) + Double.parseDouble(p[1]));
             }
             if (m.contains("-") && m.indexOf('-') > 0) {
                 String[] p = m.split("-");
-                if (p.length == 2)
-                    return "النتيجة: " + (Double.parseDouble(p[0]) - Double.parseDouble(p[1]));
+                if (p.length == 2) return "النتيجة: " + (Double.parseDouble(p[0]) - Double.parseDouble(p[1]));
             }
             if (m.contains("*")) {
                 String[] p = m.split("\\*");
-                if (p.length == 2)
-                    return "النتيجة: " + (Double.parseDouble(p[0]) * Double.parseDouble(p[1]));
+                if (p.length == 2) return "النتيجة: " + (Double.parseDouble(p[0]) * Double.parseDouble(p[1]));
             }
             if (m.contains("/")) {
                 String[] p = m.split("/");
@@ -987,22 +980,13 @@ public class MainActivity extends Activity {
         return null;
     }
 
-    private TextView header(String t) {
-        TextView v = new TextView(this);
-        v.setText(t);
-        v.setTextSize(24);
-        v.setTypeface(Typeface.DEFAULT_BOLD);
-        v.setTextColor(TEXT);
-        v.setPadding(dp(16), dp(18), dp(16), dp(8));
-        return v;
-    }
-
     private TextView section(String t) {
         TextView v = new TextView(this);
         v.setText(t);
         v.setTextColor(ACCENT);
         v.setTypeface(Typeface.DEFAULT_BOLD);
-        v.setPadding(0, dp(14), 0, dp(8));
+        v.setTextSize(14);
+        v.setPadding(0, dp(18), 0, dp(8));
         return v;
     }
 
@@ -1016,8 +1000,9 @@ public class MainActivity extends Activity {
         b.setText(text);
         b.setTextColor(Color.parseColor("#04120E"));
         b.setTypeface(Typeface.DEFAULT_BOLD);
-        b.setBackground(rounded(ACCENT, 16));
-        b.setPadding(dp(14), dp(12), dp(14), dp(12));
+        b.setTextSize(13);
+        b.setBackground(rounded(ACCENT, 12));
+        b.setPadding(dp(12), dp(10), dp(12), dp(10));
         return b;
     }
 
@@ -1026,8 +1011,8 @@ public class MainActivity extends Activity {
         b.setText(text);
         b.setTextColor(ACCENT);
         b.setTextSize(12);
-        b.setBackground(rounded(CARD, 14));
-        b.setPadding(dp(10), dp(6), dp(10), dp(6));
+        b.setBackground(rounded(CARD, 12));
+        b.setPadding(dp(10), dp(8), dp(10), dp(8));
         return b;
     }
 
@@ -1048,7 +1033,7 @@ public class MainActivity extends Activity {
         messages.clear();
         String raw = prefs.getString("messages", null);
         if (raw == null) {
-            messages.add("NOVA AI: أهلًا " + userName + "!\nv1.7 جاهز. جرب: أذكار أو مساعدة.");
+            messages.add("NOVA AI: أهلًا " + userName + ".\nواجهة أنظف — 4 أزرار سريعة فقط.");
             return;
         }
         try {
