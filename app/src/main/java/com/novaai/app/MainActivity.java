@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.ClipData;
 import android.content.ClipboardManager;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.Typeface;
@@ -27,6 +28,7 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Locale;
 import java.util.Random;
 import java.util.UUID;
@@ -45,11 +47,11 @@ public class MainActivity extends Activity {
     private boolean premium = false, loggedIn = false;
     private int usage = 0, totalSent = 0, tab = 0, themeId = 0, lang = 0;
     private int tasbih = 0, water = 0, azkarIdx = 0, libFilter = 0;
-    /** 0=شات 1=قائمة 2=إعدادات 3=مهام 4=مكتبة 5=مشاريع */
-    private int panel = 0;
+    private int panel = 0; // 0 شات 1 قائمة 2 إعدادات 3 مهام 4 مكتبة 5 مشاريع
 
     private static class Chat {
         String id, title;
+        boolean pinned;
         ArrayList<String> messages = new ArrayList<>();
         Chat(String id, String title) { this.id = id; this.title = title; }
     }
@@ -59,6 +61,7 @@ public class MainActivity extends Activity {
     private ArrayList<String> tasks = new ArrayList<>();
     private ArrayList<String> library = new ArrayList<>();
     private ArrayList<String> projects = new ArrayList<>();
+    private HashSet<String> shownTaskReminders = new HashSet<>();
 
     private LinearLayout root;
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
@@ -119,6 +122,10 @@ public class MainActivity extends Activity {
         L.put("library", new String[]{"المكتبة", "Library", "Bibliothèque", "لائبریری", "Kütüphane"});
         L.put("projects", new String[]{"المشاريع", "Projects", "Projets", "پروجیکٹس", "Projeler"});
         L.put("bot", new String[]{"NOVA AI Bot", "NOVA AI Bot", "NOVA AI Bot", "NOVA AI Bot", "NOVA AI Bot"});
+        L.put("search", new String[]{"بحث", "Search", "Rechercher", "تلاش", "Ara"});
+        L.put("share", new String[]{"مشاركة", "Share", "Partager", "شیئر", "Paylaş"});
+        L.put("pin", new String[]{"تثبيت", "Pin", "Épingler", "پن", "Sabitle"});
+        L.put("unpin", new String[]{"إلغاء التثبيت", "Unpin", "Désépingler", "ان پن", "Kaldır"});
     }
 
     private String t(String key) {
@@ -153,7 +160,27 @@ public class MainActivity extends Activity {
         root.setBackgroundColor(BG);
         setContentView(root);
         if (!loggedIn || userEmail.isEmpty()) showAuth();
-        else showMain();
+        else {
+            showMain();
+            maybeRemindTasks();
+        }
+    }
+
+    private void maybeRemindTasks() {
+        if (tasks.isEmpty()) return;
+        String today = String.valueOf(Calendar.getInstance().get(Calendar.DAY_OF_YEAR));
+        if (prefs.getString("task_remind_day", "").equals(today)) return;
+        prefs.edit().putString("task_remind_day", today).apply();
+        new AlertDialog.Builder(this)
+                .setTitle(t("tasks"))
+                .setMessage("عندك " + tasks.size() + " مهمة:\n• " + tasks.get(0) + (tasks.size() > 1 ? "\n• ..." : ""))
+                .setPositiveButton("حسناً", null)
+                .setNeutralButton(t("tasks"), (d, w) -> {
+                    tab = 0;
+                    panel = 3;
+                    showMain();
+                })
+                .show();
     }
 
     private void applyTheme() {
@@ -248,6 +275,7 @@ public class MainActivity extends Activity {
                 loggedIn = true;
                 prefs.edit().putBoolean("logged_in", true).apply();
                 showMain();
+                maybeRemindTasks();
             } else Toast.makeText(this, "بيانات خطأ", Toast.LENGTH_SHORT).show();
         });
     }
@@ -292,6 +320,80 @@ public class MainActivity extends Activity {
         showMain();
     }
 
+    private void sortChatsPinnedFirst() {
+        ArrayList<Chat> pinned = new ArrayList<>();
+        ArrayList<Chat> rest = new ArrayList<>();
+        for (Chat c : chats) {
+            if (c.pinned) pinned.add(c);
+            else rest.add(c);
+        }
+        chats.clear();
+        chats.addAll(pinned);
+        chats.addAll(rest);
+    }
+
+    private void togglePin(Chat c) {
+        c.pinned = !c.pinned;
+        sortChatsPinnedFirst();
+        saveChats();
+        showMain();
+        Toast.makeText(this, c.pinned ? t("pin") : t("unpin"), Toast.LENGTH_SHORT).show();
+    }
+
+    private void shareCurrentChat() {
+        Chat chat = currentChat();
+        if (chat == null || chat.messages.isEmpty()) {
+            Toast.makeText(this, "لا يوجد محتوى", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append(chat.title).append("\n\n");
+        for (String m : chat.messages) sb.append(m).append("\n");
+        Intent in = new Intent(Intent.ACTION_SEND);
+        in.setType("text/plain");
+        in.putExtra(Intent.EXTRA_SUBJECT, chat.title);
+        in.putExtra(Intent.EXTRA_TEXT, sb.toString());
+        startActivity(Intent.createChooser(in, t("share")));
+    }
+
+    private void searchInChat() {
+        Chat chat = currentChat();
+        if (chat == null) return;
+        final EditText input = new EditText(this);
+        input.setHint(t("search"));
+        input.setTextColor(TEXT);
+        input.setHintTextColor(MUTED);
+        input.setBackground(rounded(CARD, 12));
+        input.setPadding(dp(14), dp(12), dp(14), dp(12));
+        input.setSingleLine(true);
+        new AlertDialog.Builder(this)
+                .setTitle(t("search"))
+                .setView(input)
+                .setPositiveButton(t("search"), (d, w) -> {
+                    String q = input.getText().toString().trim().toLowerCase(Locale.US);
+                    if (q.isEmpty()) return;
+                    StringBuilder found = new StringBuilder();
+                    int n = 0;
+                    for (String m : chat.messages) {
+                        if (m.toLowerCase(Locale.US).contains(q)) {
+                            found.append("• ").append(m).append("\n\n");
+                            n++;
+                        }
+                    }
+                    if (n == 0) {
+                        Toast.makeText(this, "لا نتائج", Toast.LENGTH_SHORT).show();
+                    } else {
+                        new AlertDialog.Builder(this)
+                                .setTitle(t("search") + " (" + n + ")")
+                                .setMessage(found.toString())
+                                .setPositiveButton("حسناً", null)
+                                .show();
+                    }
+                })
+                .setNegativeButton("إلغاء", null)
+                .show();
+    }
+
     private void loadChats() {
         chats.clear();
         String raw = prefs.getString("chats_v2", null);
@@ -302,6 +404,7 @@ public class MainActivity extends Activity {
                 for (int i = 0; i < arr.length(); i++) {
                     JSONObject o = arr.getJSONObject(i);
                     Chat c = new Chat(o.getString("id"), o.optString("title", "Chat"));
+                    c.pinned = o.optBoolean("pinned", false);
                     JSONArray msgs = o.optJSONArray("messages");
                     if (msgs != null) for (int j = 0; j < msgs.length(); j++) c.messages.add(msgs.optString(j));
                     chats.add(c);
@@ -315,6 +418,7 @@ public class MainActivity extends Activity {
             currentChatId = c.id;
             saveChats();
         }
+        sortChatsPinnedFirst();
         ensureChat();
     }
 
@@ -325,6 +429,7 @@ public class MainActivity extends Activity {
                 JSONObject o = new JSONObject();
                 o.put("id", c.id);
                 o.put("title", c.title);
+                o.put("pinned", c.pinned);
                 JSONArray msgs = new JSONArray();
                 for (String m : c.messages) msgs.put(m);
                 o.put("messages", msgs);
@@ -457,16 +562,20 @@ public class MainActivity extends Activity {
             LinearLayout row = new LinearLayout(this);
             row.setOrientation(LinearLayout.HORIZONTAL);
             row.setBackground(rounded(c.id.equals(currentChatId) ? CARD : Color.TRANSPARENT, 12));
-            row.setPadding(dp(12), dp(12), dp(8), dp(12));
+            row.setPadding(dp(10), dp(10), dp(6), dp(10));
             row.setGravity(Gravity.CENTER_VERTICAL);
             LinearLayout.LayoutParams rp = matchWrap();
             rp.bottomMargin = dp(4);
             TextView tv = new TextView(this);
-            tv.setText(c.title);
+            tv.setText((c.pinned ? "📌 " : "") + c.title);
             tv.setTextColor(TEXT);
             tv.setTextSize(14);
             tv.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
             row.addView(tv);
+            Button pinBtn = chipBtn(c.pinned ? "Unpin" : "📌");
+            pinBtn.setTextSize(10);
+            pinBtn.setOnClickListener(v -> togglePin(c));
+            row.addView(pinBtn);
             Button del = chipBtn("×");
             del.setOnClickListener(v -> {
                 if (chats.size() <= 1) {
@@ -578,14 +687,8 @@ public class MainActivity extends Activity {
 
         ArrayList<String> shown = new ArrayList<>();
         if (isLibrary) {
-            if (libFilter == 2 || libFilter == 3) {
-                // وسائط وملفات فارغة محليًا
-            } else {
-                shown.addAll(data);
-            }
-        } else {
-            shown.addAll(data);
-        }
+            if (libFilter != 2 && libFilter != 3) shown.addAll(data);
+        } else shown.addAll(data);
 
         if (shown.isEmpty()) {
             TextView icon = new TextView(this);
@@ -607,13 +710,13 @@ public class MainActivity extends Activity {
             box.addView(h);
             TextView desc = new TextView(this);
             if (isLibrary && (libFilter == 2 || libFilter == 3))
-                desc.setText("الوضع المحلي يدعم النصوص المحفوظة فقط");
+                desc.setText("الوضع المحلي يدعم النصوص فقط");
             else if (isProjects)
-                desc.setText("المشاريع تنظّم المحادثات والتعليمات المشتركة");
+                desc.setText("المشاريع تنظّم المحادثات");
             else if (isTasks)
-                desc.setText("أضف مهامك وتابعها من هنا");
+                desc.setText("أضف مهامك من هنا");
             else
-                desc.setText("احفظ ردودًا من الشات أو أضف عناصر يدويًا");
+                desc.setText("احفظ ردودًا أو أضف عناصر");
             desc.setTextSize(13);
             desc.setTextColor(MUTED);
             desc.setGravity(Gravity.CENTER);
@@ -763,7 +866,6 @@ public class MainActivity extends Activity {
         box.setPadding(dp(16), dp(12), dp(16), dp(20));
         scroll.addView(box);
         content.addView(scroll, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1));
-
         box.addView(infoCard(userName, userEmail));
         box.addView(section("المظهر"));
         String[] themes = {"أبيض", "أسود", "أخضر داكن"};
@@ -813,7 +915,7 @@ public class MainActivity extends Activity {
                 showMain();
             });
         }
-        Button logout = chipBtn("خروج من الحساب");
+        Button logout = chipBtn("خروج");
         LinearLayout.LayoutParams lo = matchWrap();
         lo.topMargin = dp(16);
         box.addView(logout, lo);
@@ -830,7 +932,7 @@ public class MainActivity extends Activity {
         LinearLayout top = new LinearLayout(this);
         top.setOrientation(LinearLayout.HORIZONTAL);
         top.setBackgroundColor(SURFACE);
-        top.setPadding(dp(10), dp(12), dp(10), dp(12));
+        top.setPadding(dp(8), dp(10), dp(8), dp(10));
         top.setGravity(Gravity.CENTER_VERTICAL);
         Button listBtn = chipBtn("☰");
         listBtn.setOnClickListener(v -> { panel = 1; showMain(); });
@@ -838,10 +940,10 @@ public class MainActivity extends Activity {
         LinearLayout col = new LinearLayout(this);
         col.setOrientation(LinearLayout.VERTICAL);
         col.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
-        col.setPadding(dp(10), 0, dp(6), 0);
+        col.setPadding(dp(8), 0, dp(4), 0);
         TextView title = new TextView(this);
-        title.setText(chat != null ? chat.title : t("chat"));
-        title.setTextSize(16);
+        title.setText((chat != null && chat.pinned ? "📌 " : "") + (chat != null ? chat.title : t("chat")));
+        title.setTextSize(15);
         title.setTypeface(Typeface.DEFAULT_BOLD);
         title.setTextColor(TEXT);
         col.addView(title);
@@ -851,6 +953,13 @@ public class MainActivity extends Activity {
         online.setTextColor(MUTED);
         col.addView(online);
         top.addView(col);
+        // بحث + مشاركة + جديد
+        Button searchBtn = chipBtn("🔍");
+        searchBtn.setOnClickListener(v -> searchInChat());
+        top.addView(searchBtn);
+        Button shareBtn = chipBtn("↗");
+        shareBtn.setOnClickListener(v -> shareCurrentChat());
+        top.addView(shareBtn);
         Button newBtn = chipBtn("+");
         newBtn.setOnClickListener(v -> newChat());
         top.addView(newBtn);
@@ -1355,7 +1464,7 @@ public class MainActivity extends Activity {
             showMain();
         });
         TextView ver = new TextView(this);
-        ver.setText("NOVA AI v2.4 · ثيم أبيض");
+        ver.setText("NOVA AI v2.5 · بحث · مشاركة · تثبيت");
         ver.setTextColor(MUTED);
         ver.setGravity(Gravity.CENTER);
         ver.setPadding(0, dp(24), 0, 0);
@@ -1398,26 +1507,24 @@ public class MainActivity extends Activity {
         if (has(m, "نصيحة", "advice"))
             return "خطوة صغيرة كل يوم أفضل من حماسة يوم واحد.";
         if (has(m, "مساعدة", "help", "تقدر تساعدني"))
-            return "☰ Bot / مشاريع / مكتبة / مهام\n⚙ إعدادات يسار أسفل الشات\nأدوات: حرارة BMI حاسبة";
+            return "🔍 بحث · ↗ مشاركة · 📌 تثبيت من القائمة\n☰ Bot / مشاريع / مكتبة / مهام\n⚙ إعدادات";
         if (has(m, "أذكار", "صباح", "مساء"))
             return "🌅 " + AZKAR_MORNING[0];
-        if (has(m, "مهمة", "مهام"))
-            return "☰ ثم المهام.";
-        if (has(m, "مكتبة"))
-            return "☰ → المكتبة (الكل / نصوص / وسائط / ملفات).";
-        if (has(m, "مشروع", "مشاريع"))
-            return "☰ → المشاريع.";
-        if (has(m, "إعدادات", "settings"))
-            return "⚙ أسفل الشات يسار.";
+        if (has(m, "بحث", "search"))
+            return "اضغط 🔍 أعلى الشات للبحث في المحادثة.";
+        if (has(m, "مشاركة", "share"))
+            return "اضغط ↗ أعلى الشات لمشاركة المحادثة.";
+        if (has(m, "تثبيت", "pin"))
+            return "من ☰ بجانب كل محادثة زر 📌 للتثبيت.";
         if (has(m, "اسمك", "من أنت", "ايش اسمك"))
-            return "أنا NOVA AI Bot — نسخة محلية بثيم أبيض.";
+            return "أنا NOVA AI Bot — v2.5 محلي بثيم أبيض.";
         if (has(m, "وقت", "ساعة")) {
             Calendar c = Calendar.getInstance();
             return String.format(Locale.US, "%02d:%02d", c.get(Calendar.HOUR_OF_DAY), c.get(Calendar.MINUTE));
         }
         String calc = tryMath(m.replace("÷", "/").replace("×", "*"));
         if (calc != null) return "النتيجة: " + calc;
-        return "وصلتني رسالتك. جرب مساعدة أو ☰.";
+        return "وصلتني رسالتك. جرب مساعدة أو 🔍.";
     }
 
     private String tryMath(String m) {
