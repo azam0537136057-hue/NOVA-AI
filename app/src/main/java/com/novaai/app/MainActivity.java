@@ -1,6 +1,7 @@
 package com.novaai.app;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.SharedPreferences;
@@ -43,7 +44,7 @@ public class MainActivity extends Activity {
     private String userName = "", userEmail = "";
     private boolean premium = false, loggedIn = false;
     private int usage = 0, totalSent = 0, tab = 0, themeId = 0, lang = 0;
-    private int tasbih = 0, water = 0, azkarIdx = 0;
+    private int tasbih = 0, water = 0, azkarIdx = 0, libFilter = 0;
     /** 0=شات 1=قائمة 2=إعدادات 3=مهام 4=مكتبة 5=مشاريع */
     private int panel = 0;
 
@@ -408,17 +409,16 @@ public class MainActivity extends Activity {
         top.setBackgroundColor(SURFACE);
         top.setPadding(dp(14), dp(14), dp(12), dp(14));
         top.setGravity(Gravity.CENTER_VERTICAL);
-        TextView t = new TextView(this);
-        t.setText(title);
-        t.setTextSize(18);
-        t.setTypeface(Typeface.DEFAULT_BOLD);
-        t.setTextColor(TEXT);
-        t.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
-        top.addView(t);
+        TextView tv = new TextView(this);
+        tv.setText(title);
+        tv.setTextSize(18);
+        tv.setTypeface(Typeface.DEFAULT_BOLD);
+        tv.setTextColor(TEXT);
+        tv.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
+        top.addView(tv);
         return top;
     }
 
-    /** قائمة جانبية بأسلوب Grok */
     private void buildMenu(LinearLayout content) {
         LinearLayout top = bar("NOVA");
         Button close = chipBtn("✕");
@@ -433,17 +433,15 @@ public class MainActivity extends Activity {
         scroll.addView(box);
         content.addView(scroll, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1));
 
-        // زر محادثة جديدة
         Button newC = primaryBtn("+ " + t("new_chat"));
         LinearLayout.LayoutParams np = matchWrap();
         np.bottomMargin = dp(12);
         box.addView(newC, np);
         newC.setOnClickListener(v -> newChat());
 
-        // أقسام ثابتة
         box.addView(menuItem("🤖  " + t("bot"), () -> { panel = 0; showMain(); }));
         box.addView(menuItem("📁  " + t("projects"), () -> { panel = 5; showMain(); }));
-        box.addView(menuItem("📚  " + t("library"), () -> { panel = 4; showMain(); }));
+        box.addView(menuItem("📚  " + t("library"), () -> { panel = 4; libFilter = 0; showMain(); }));
         box.addView(menuItem("✅  " + t("tasks"), () -> { panel = 3; showMain(); }));
 
         TextView hist = new TextView(this);
@@ -490,7 +488,6 @@ public class MainActivity extends Activity {
             box.addView(row, rp);
         }
 
-        // أسفل القائمة: إعدادات (مثل Grok)
         LinearLayout bottom = new LinearLayout(this);
         bottom.setOrientation(LinearLayout.HORIZONTAL);
         bottom.setBackgroundColor(SURFACE);
@@ -525,75 +522,238 @@ public class MainActivity extends Activity {
     }
 
     private void buildSimpleList(LinearLayout content, String title, ArrayList<String> data, String key) {
-        LinearLayout top = bar(title);
-        Button back = chipBtn("←");
+        boolean isProjects = "projects".equals(key);
+        boolean isTasks = "tasks".equals(key);
+        boolean isLibrary = "library".equals(key);
+
+        LinearLayout top = new LinearLayout(this);
+        top.setOrientation(LinearLayout.HORIZONTAL);
+        top.setBackgroundColor(SURFACE);
+        top.setPadding(dp(12), dp(14), dp(12), dp(14));
+        top.setGravity(Gravity.CENTER_VERTICAL);
+        Button addTop = chipBtn("+");
+        top.addView(addTop);
+        TextView titleTv = new TextView(this);
+        titleTv.setText(title);
+        titleTv.setTextSize(18);
+        titleTv.setTypeface(Typeface.DEFAULT_BOLD);
+        titleTv.setTextColor(TEXT);
+        titleTv.setGravity(Gravity.CENTER);
+        titleTv.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
+        top.addView(titleTv);
+        Button back = chipBtn("→");
         back.setOnClickListener(v -> { panel = 1; showMain(); });
         top.addView(back);
         content.addView(top);
+
+        if (isLibrary) {
+            LinearLayout filters = new LinearLayout(this);
+            filters.setOrientation(LinearLayout.HORIZONTAL);
+            filters.setPadding(dp(12), dp(8), dp(12), dp(8));
+            String[] tabs = {"الكل", "نصوص", "وسائط", "ملفات"};
+            for (int i = 0; i < tabs.length; i++) {
+                final int fi = i;
+                Button tabBtn = chipBtn(tabs[i]);
+                if (libFilter == i) {
+                    tabBtn.setBackground(rounded(ACCENT, 20));
+                    tabBtn.setTextColor(onAccent());
+                }
+                LinearLayout.LayoutParams tp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
+                tp.setMargins(dp(3), 0, dp(3), 0);
+                filters.addView(tabBtn, tp);
+                tabBtn.setOnClickListener(v -> {
+                    libFilter = fi;
+                    showMain();
+                });
+            }
+            content.addView(filters);
+        }
+
         ScrollView scroll = new ScrollView(this);
         LinearLayout box = new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
-        box.setPadding(dp(16), dp(12), dp(16), dp(12));
+        box.setPadding(dp(16), dp(12), dp(16), dp(24));
         scroll.addView(box);
         content.addView(scroll, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1));
-        EditText input = field("...");
-        box.addView(input);
-        Button add = primaryBtn("+");
-        LinearLayout.LayoutParams ap = matchWrap();
-        ap.topMargin = dp(8);
-        ap.bottomMargin = dp(12);
-        box.addView(add, ap);
-        LinearLayout list = new LinearLayout(this);
-        list.setOrientation(LinearLayout.VERTICAL);
-        box.addView(list);
-        renderSimple(list, data, key);
-        add.setOnClickListener(v -> {
-            String tx = input.getText().toString().trim();
-            if (tx.isEmpty()) return;
-            data.add(0, tx);
-            saveList(key, data);
-            input.setText("");
-            renderSimple(list, data, key);
-        });
+
+        ArrayList<String> shown = new ArrayList<>();
+        if (isLibrary) {
+            if (libFilter == 2 || libFilter == 3) {
+                // وسائط وملفات فارغة محليًا
+            } else {
+                shown.addAll(data);
+            }
+        } else {
+            shown.addAll(data);
+        }
+
+        if (shown.isEmpty()) {
+            TextView icon = new TextView(this);
+            icon.setText(isProjects ? "📁" : isTasks ? "✅" : "📚");
+            icon.setTextSize(42);
+            icon.setGravity(Gravity.CENTER);
+            icon.setPadding(0, dp(40), 0, dp(12));
+            box.addView(icon);
+            TextView h = new TextView(this);
+            if (isLibrary && (libFilter == 2 || libFilter == 3))
+                h.setText(libFilter == 2 ? "لا توجد وسائط" : "لا توجد ملفات");
+            else if (isProjects) h.setText("ابدأ بإنشاء مشروع جديد");
+            else if (isTasks) h.setText("لا توجد مهام بعد");
+            else h.setText("المكتبة فارغة");
+            h.setTextSize(17);
+            h.setTypeface(Typeface.DEFAULT_BOLD);
+            h.setTextColor(TEXT);
+            h.setGravity(Gravity.CENTER);
+            box.addView(h);
+            TextView desc = new TextView(this);
+            if (isLibrary && (libFilter == 2 || libFilter == 3))
+                desc.setText("الوضع المحلي يدعم النصوص المحفوظة فقط");
+            else if (isProjects)
+                desc.setText("المشاريع تنظّم المحادثات والتعليمات المشتركة");
+            else if (isTasks)
+                desc.setText("أضف مهامك وتابعها من هنا");
+            else
+                desc.setText("احفظ ردودًا من الشات أو أضف عناصر يدويًا");
+            desc.setTextSize(13);
+            desc.setTextColor(MUTED);
+            desc.setGravity(Gravity.CENTER);
+            desc.setPadding(dp(16), dp(8), dp(16), dp(20));
+            box.addView(desc);
+            if (!(isLibrary && (libFilter == 2 || libFilter == 3))) {
+                Button create = primaryBtn(isProjects ? "+ مشروع جديد" : isTasks ? "+ مهمة" : "+ إضافة");
+                LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+                cp.gravity = Gravity.CENTER_HORIZONTAL;
+                box.addView(create, cp);
+                create.setOnClickListener(v -> promptAdd(data, key, title));
+            }
+            addTop.setOnClickListener(v -> promptAdd(data, key, title));
+        } else {
+            if (isLibrary) {
+                for (int i = 0; i < shown.size(); i += 2) {
+                    LinearLayout row = new LinearLayout(this);
+                    row.setOrientation(LinearLayout.HORIZONTAL);
+                    row.setPadding(0, 0, 0, dp(10));
+                    row.addView(libCard(shown.get(i), data, key),
+                            new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
+                    if (i + 1 < shown.size()) {
+                        LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
+                        sp.setMarginStart(dp(8));
+                        row.addView(libCard(shown.get(i + 1), data, key), sp);
+                    } else {
+                        row.addView(new View(this), new LinearLayout.LayoutParams(0, 1, 1));
+                    }
+                    box.addView(row);
+                }
+            } else {
+                for (int i = 0; i < shown.size(); i++) {
+                    final String item = shown.get(i);
+                    final int idx = data.indexOf(item);
+                    LinearLayout card = new LinearLayout(this);
+                    card.setOrientation(LinearLayout.VERTICAL);
+                    card.setBackground(rounded(CARD, 16));
+                    card.setPadding(dp(14), dp(14), dp(14), dp(14));
+                    LinearLayout.LayoutParams cp = matchWrap();
+                    cp.bottomMargin = dp(10);
+                    TextView tv = new TextView(this);
+                    tv.setText((isProjects ? "📁  " : "☐  ") + item);
+                    tv.setTextColor(TEXT);
+                    tv.setTextSize(15);
+                    card.addView(tv);
+                    LinearLayout actions = new LinearLayout(this);
+                    actions.setOrientation(LinearLayout.HORIZONTAL);
+                    actions.setPadding(0, dp(10), 0, 0);
+                    Button open = primaryBtn(isProjects ? "فتح" : "تم");
+                    Button del = chipBtn(t("delete"));
+                    LinearLayout.LayoutParams half = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
+                    half.setMarginEnd(dp(8));
+                    actions.addView(open, half);
+                    actions.addView(del, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
+                    card.addView(actions);
+                    open.setOnClickListener(v -> {
+                        if (isProjects) {
+                            Chat c = new Chat(UUID.randomUUID().toString(), item);
+                            c.messages.add("NOVA AI: مشروع «" + item + "»");
+                            chats.add(0, c);
+                            currentChatId = c.id;
+                            panel = 0;
+                            saveChats();
+                            showMain();
+                        } else {
+                            if (idx >= 0) data.remove(idx);
+                            saveList(key, data);
+                            showMain();
+                        }
+                    });
+                    del.setOnClickListener(v -> {
+                        if (idx >= 0) data.remove(idx);
+                        saveList(key, data);
+                        showMain();
+                    });
+                    box.addView(card, cp);
+                }
+            }
+            addTop.setOnClickListener(v -> promptAdd(data, key, title));
+        }
     }
 
-    private void renderSimple(LinearLayout list, ArrayList<String> data, String key) {
-        list.removeAllViews();
-        if (data.isEmpty()) {
-            TextView e = new TextView(this);
-            e.setText("—");
-            e.setTextColor(MUTED);
-            e.setGravity(Gravity.CENTER);
-            e.setPadding(0, dp(20), 0, 0);
-            list.addView(e);
-            return;
-        }
-        for (int i = 0; i < data.size(); i++) {
-            final int idx = i;
-            LinearLayout card = new LinearLayout(this);
-            card.setOrientation(LinearLayout.VERTICAL);
-            card.setBackground(rounded(CARD, 12));
-            card.setPadding(dp(12), dp(12), dp(12), dp(12));
-            LinearLayout.LayoutParams cp = matchWrap();
-            cp.bottomMargin = dp(8);
-            TextView tv = new TextView(this);
-            tv.setText(data.get(i));
-            tv.setTextColor(TEXT);
-            card.addView(tv);
-            Button del = chipBtn(t("delete"));
-            card.addView(del);
-            del.setOnClickListener(v -> {
-                data.remove(idx);
-                saveList(key, data);
-                renderSimple(list, data, key);
-            });
-            list.addView(card, cp);
-        }
+    private LinearLayout libCard(String item, ArrayList<String> data, String key) {
+        LinearLayout card = new LinearLayout(this);
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setBackground(rounded(CARD, 16));
+        card.setPadding(dp(12), dp(12), dp(12), dp(12));
+        TextView tv = new TextView(this);
+        tv.setText(item.length() > 80 ? item.substring(0, 80) + "…" : item);
+        tv.setTextColor(TEXT);
+        tv.setTextSize(12);
+        tv.setMaxLines(5);
+        card.addView(tv);
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setPadding(0, dp(8), 0, 0);
+        Button copy = chipBtn("نسخ");
+        Button del = chipBtn("×");
+        row.addView(copy);
+        row.addView(del);
+        card.addView(row);
+        copy.setOnClickListener(v -> {
+            ((ClipboardManager) getSystemService(CLIPBOARD_SERVICE))
+                    .setPrimaryClip(ClipData.newPlainText("lib", item));
+            Toast.makeText(this, "تم النسخ", Toast.LENGTH_SHORT).show();
+        });
+        del.setOnClickListener(v -> {
+            data.remove(item);
+            saveList(key, data);
+            showMain();
+        });
+        return card;
+    }
+
+    private void promptAdd(ArrayList<String> data, String key, String title) {
+        final EditText input = new EditText(this);
+        input.setHint(title);
+        input.setTextColor(TEXT);
+        input.setHintTextColor(MUTED);
+        input.setBackground(rounded(CARD, 12));
+        input.setPadding(dp(14), dp(12), dp(14), dp(12));
+        input.setSingleLine(true);
+        new AlertDialog.Builder(this)
+                .setTitle(title)
+                .setView(input)
+                .setPositiveButton("+", (d, w) -> {
+                    String tx = input.getText().toString().trim();
+                    if (tx.isEmpty()) return;
+                    data.add(0, tx);
+                    saveList(key, data);
+                    showMain();
+                })
+                .setNegativeButton("إلغاء", null)
+                .show();
     }
 
     private void buildSettings(LinearLayout content) {
         LinearLayout top = bar(t("settings"));
-        Button back = chipBtn("←");
+        Button back = chipBtn("→");
         back.setOnClickListener(v -> { panel = 1; showMain(); });
         top.addView(back);
         content.addView(top);
@@ -605,7 +765,6 @@ public class MainActivity extends Activity {
         content.addView(scroll, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1));
 
         box.addView(infoCard(userName, userEmail));
-
         box.addView(section("المظهر"));
         String[] themes = {"أبيض", "أسود", "أخضر داكن"};
         for (int i = 0; i < 3; i++) {
@@ -625,7 +784,6 @@ public class MainActivity extends Activity {
                 showMain();
             });
         }
-
         box.addView(section(t("lang")));
         String[] langs = {"العربية", "English", "Français", "اردو", "Türkçe"};
         for (int i = 0; i < langs.length; i++) {
@@ -644,7 +802,6 @@ public class MainActivity extends Activity {
                 showMain();
             });
         }
-
         if (!premium) {
             Button pro = primaryBtn("تفعيل Pro");
             LinearLayout.LayoutParams pp = matchWrap();
@@ -656,7 +813,6 @@ public class MainActivity extends Activity {
                 showMain();
             });
         }
-
         Button logout = chipBtn("خروج من الحساب");
         LinearLayout.LayoutParams lo = matchWrap();
         lo.topMargin = dp(16);
@@ -728,7 +884,6 @@ public class MainActivity extends Activity {
         content.addView(scroll, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1));
         refreshMessages(msgBox);
 
-        // شريط سفلي: إعدادات يسار + إدخال + إرسال (مثل Grok)
         LinearLayout bottom = new LinearLayout(this);
         bottom.setOrientation(LinearLayout.HORIZONTAL);
         bottom.setBackgroundColor(SURFACE);
@@ -829,7 +984,6 @@ public class MainActivity extends Activity {
                 Chat ch = currentChat();
                 if (ch != null) {
                     ch.messages.add("NOVA AI: " + reply);
-                    // حفظ في المكتبة إذا طلب
                     if (has(text.toLowerCase(Locale.US), "احفظ", "مكتبة", "save")) {
                         library.add(0, reply);
                         saveList("library", library);
@@ -967,8 +1121,7 @@ public class MainActivity extends Activity {
             try {
                 double w = Double.parseDouble(weight.getText().toString().trim());
                 double h = Double.parseDouble(height.getText().toString().trim()) / 100.0;
-                double bmi = w / (h * h);
-                bmiOut.setText(String.format(Locale.US, "%.1f", bmi));
+                bmiOut.setText(String.format(Locale.US, "%.1f", w / (h * h)));
             } catch (Exception e) {
                 bmiOut.setText("Error");
             }
@@ -1085,9 +1238,9 @@ public class MainActivity extends Activity {
         return box;
     }
 
-    private TextView num(String t) {
+    private TextView num(String s) {
         TextView v = new TextView(this);
-        v.setText(t);
+        v.setText(s);
         v.setTextSize(26);
         v.setTextColor(TEXT);
         v.setGravity(Gravity.CENTER);
@@ -1202,7 +1355,7 @@ public class MainActivity extends Activity {
             showMain();
         });
         TextView ver = new TextView(this);
-        ver.setText("NOVA AI v2.3 · قائمة + إعدادات");
+        ver.setText("NOVA AI v2.4 · ثيم أبيض");
         ver.setTextColor(MUTED);
         ver.setGravity(Gravity.CENTER);
         ver.setPadding(0, dp(24), 0, 0);
@@ -1245,17 +1398,17 @@ public class MainActivity extends Activity {
         if (has(m, "نصيحة", "advice"))
             return "خطوة صغيرة كل يوم أفضل من حماسة يوم واحد.";
         if (has(m, "مساعدة", "help", "تقدر تساعدني"))
-            return "☰ قائمة (Bot / مشاريع / مكتبة / مهام)\n⚙ إعدادات يسار أسفل الشات\nأدوات: حرارة BMI حاسبة";
+            return "☰ Bot / مشاريع / مكتبة / مهام\n⚙ إعدادات يسار أسفل الشات\nأدوات: حرارة BMI حاسبة";
         if (has(m, "أذكار", "صباح", "مساء"))
             return "🌅 " + AZKAR_MORNING[0];
-        if (has(m, "مهمة", "مهام", "task"))
-            return "افتح ☰ ثم المهام لإضافة مهمة.";
-        if (has(m, "مكتبة", "library"))
-            return "افتح ☰ → المكتبة. أو اكتب «احفظ» مع الرسالة.";
+        if (has(m, "مهمة", "مهام"))
+            return "☰ ثم المهام.";
+        if (has(m, "مكتبة"))
+            return "☰ → المكتبة (الكل / نصوص / وسائط / ملفات).";
         if (has(m, "مشروع", "مشاريع"))
-            return "افتح ☰ → المشاريع.";
+            return "☰ → المشاريع.";
         if (has(m, "إعدادات", "settings"))
-            return "اضغط ⚙ أسفل الشات يسار، أو من القائمة.";
+            return "⚙ أسفل الشات يسار.";
         if (has(m, "اسمك", "من أنت", "ايش اسمك"))
             return "أنا NOVA AI Bot — نسخة محلية بثيم أبيض.";
         if (has(m, "وقت", "ساعة")) {
@@ -1291,9 +1444,9 @@ public class MainActivity extends Activity {
         return null;
     }
 
-    private TextView section(String t) {
+    private TextView section(String s) {
         TextView v = new TextView(this);
-        v.setText(t);
+        v.setText(s);
         v.setTextColor(TEXT);
         v.setTypeface(Typeface.DEFAULT_BOLD);
         v.setPadding(0, dp(16), 0, dp(8));
